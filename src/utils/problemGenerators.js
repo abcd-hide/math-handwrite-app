@@ -37,13 +37,15 @@ export const problemGenerators = {
       const type = types[getRandomInt(0, types.length - 1)];
       
       if (type === 'common_const') {
-        const a = getRandomNonZeroInt(-5, 5);
+        let a = getRandomNonZeroInt(-5, 5);
+        if (a === 1 || a === -1) a = 2; // Avoid trivial
         const b = getRandomNonZeroInt(-5, 5);
         const q = `${fmtTerm(a, 'x', true)}${fmtConst(a * b)}`;
         const ans = `${a}(x${fmtConst(b)})`;
         return { question: q, answer: ans };
       } else if (type === 'common_xy_const') {
-        const a = getRandomNonZeroInt(-5, 5);
+        let a = getRandomNonZeroInt(-5, 5);
+        if (a === 1 || a === -1) a = 3; // Avoid trivial
         const q = `${fmtTerm(a, 'x', true)}${fmtTerm(a, 'y')}`;
         const ans = `${a}(x+y)`;
         return { question: q, answer: ans };

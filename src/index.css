@@ -39,16 +39,18 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 15px;
-  gap: 12px;
+  height: 100dvh; /* Modern browsers */
+  padding: 10px;
+  gap: 8px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  overflow: hidden; /* Ensure nothing pushes the container out */
 }
 @media (max-width: 1024px) {
   .app-container {
-    padding: 10px;
-    gap: 8px;
+    padding: 8px;
+    gap: 6px;
   }
 }
 
@@ -86,10 +88,11 @@ header {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  padding: 20px;
-  border-radius: 20px;
+  padding: 12px 20px;
+  border-radius: 16px;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  flex-shrink: 0; /* Don't squash me */
 }
 
 .problem-label {
@@ -119,7 +122,8 @@ header {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
+  min-height: 0; /* IMPORTANT: Let flex items shrink */
 }
 
 /* Sections */
@@ -139,16 +143,19 @@ header {
   border-radius: 20px;
   position: relative;
   overflow: hidden;
+  min-height: 50px; /* At least some space */
 }
 
 .scratchpad-area {
-  flex: 2; /* Large Area */
+  flex: 3; /* More space for scratchpad */
+  min-height: 100px;
 }
 
 .answer-area {
-  flex: 1; /* Small Area */
+  flex: 1.5;
   background: var(--glass-bg-accent);
   border: 1px solid var(--accent-color);
+  min-height: 80px;
 }
 
 /* Tool Bar */
@@ -178,17 +185,30 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap; /* Avoid wrapping on iPad unless really needed */
+  flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .footer {
-    justify-content: center;
+    gap: 5px;
+  }
+  .footer .btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    gap: 4px;
   }
   .footer .stats-card {
-    order: -1;
-    width: 100%;
+    min-width: 150px !important;
+    height: 40px !important;
+    font-size: 14px !important;
+  }
+}
+@media (max-width: 768px) {
+  .footer {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
 

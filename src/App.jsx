@@ -32,10 +32,11 @@ const cleanMath = (latex) => {
 const cleanLatexForDisplay = (latex) => {
   if (!latex) return "";
   let s = latex;
-  // MyScript sometimes adds incomplete \left \right or extra dots
+  // Remove MyScript specific artifacts that often break KaTeX rendering
   s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
-  // Simplify parentheses if KaTeX struggles with \left( \right)
-  // s = s.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
+  s = s.replace(/\\left/g, '').replace(/\\right/g, ''); 
+  s = s.replace(/\\text\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\ /g, ' ');
   return s;
 };
 
