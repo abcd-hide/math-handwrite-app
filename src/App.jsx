@@ -55,12 +55,10 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
     const node1 = math.parse(cleanedInput);
     const node2 = math.parse(cleanedTarget);
     
-    // Variables encountered in these levels: x, y, a, b, c
+    // Variables encountered: x,y,z, a,b,c, p,q,r, s,t,u, i,j,k
     const testPoints = [
-      { x: 1.5, y: 2.7, a: 0.5, b: 1.2, c: -0.8 },
-      { x: -2.1, y: 0.3, a: 1.5, b: -2.4, c: 3.1 },
-      { x: 0.7, y: -1.5, a: -1.1, b: 0.8, c: 1.9 },
-      { x: 3.3, y: 1.1, a: 2.2, b: 0.5, c: -2.5 }
+      { x: 1.5, y: 2.7, z: 0.8, a: 0.5, b: 1.2, c: -0.8, p: 0.4, q: -1.2, r: 0.9, s: 1.1, t: -0.5, u: 0.3, i: 1.4, j: -0.2, k: 0.6 },
+      { x: -2.1, y: 0.3, z: -1.5, a: 1.5, b: -2.4, c: 3.1, p: -0.7, q: 0.5, r: -1.1, s: 0.2, t: 1.4, u: -0.9, i: -0.3, j: 0.8, k: -1.2 }
     ];
     
     return testPoints.every(scope => {

@@ -29,38 +29,67 @@ const fmtTerm = (coeff, term, first = false) => {
   return `${fmtCoeff(coeff, first)}${term}`;
 };
 
+const variableGroups = [
+  ['x', 'y', 'z'],
+  ['a', 'b', 'c'],
+  ['p', 'q', 'r'],
+  ['s', 't', 'u'],
+  ['i', 'j', 'k']
+];
+
+const getRandGroup = () => variableGroups[getRandomInt(0, variableGroups.length - 1)];
+
 export const problemGenerators = {
   factorization: {
-    // レベル1: 中学くくりだし a(x + b) or ax + ay or x(x + a) or xy(x + y)
+    // レベル1: 中学くくりだし (3項以上、多文字、定数+文字混合対応)
     level1: () => {
-      const types = ['common_const', 'common_xy_const', 'common_var_x', 'common_var_xy'];
-      const type = types[getRandomInt(0, types.length - 1)];
+      const g = getRandGroup();
+      const v1 = g[0], v2 = g[1], v3 = g[2];
+      const subType = getRandomInt(1, 6);
       
-      if (type === 'common_const') {
+      if (subType === 1) { // a(x + b)
+        let a = getRandomNonZeroInt(-6, 6);
+        if (a === 1 || a === -1) a = 2;
+        const b = getRandomNonZeroInt(-6, 6);
+        const q = `${fmtTerm(a, v1, true)}${fmtConst(a * b)}`;
+        const ans = `${a}(${v1}${fmtConst(b)})`;
+        return { question: q, answer: ans };
+      } 
+      if (subType === 2) { // a(x + y + z) 
         let a = getRandomNonZeroInt(-5, 5);
-        if (a === 1 || a === -1) a = 2; // Avoid trivial
-        const b = getRandomNonZeroInt(-5, 5);
-        const q = `${fmtTerm(a, 'x', true)}${fmtConst(a * b)}`;
-        const ans = `${a}(x${fmtConst(b)})`;
-        return { question: q, answer: ans };
-      } else if (type === 'common_xy_const') {
-        let a = getRandomNonZeroInt(-5, 5);
-        if (a === 1 || a === -1) a = 3; // Avoid trivial
-        const q = `${fmtTerm(a, 'x', true)}${fmtTerm(a, 'y')}`;
-        const ans = `${a}(x+y)`;
-        return { question: q, answer: ans };
-      } else if (type === 'common_var_x') {
-        const a = getRandomNonZeroInt(-5, 5);
-        // x^2 + ax = x(x+a)
-        const q = `x^2${fmtTerm(a, 'x')}`;
-        const ans = `x(x${fmtConst(a)})`;
-        return { question: q, answer: ans };
-      } else {
-        // x^2y + xy^2 = xy(x+y)
-        const q = `x^2y + xy^2`;
-        const ans = `xy(x+y)`;
+        if (a === 1 || a === -1) a = 4;
+        const q = `${fmtTerm(a, v1, true)}${fmtTerm(a, v2)}${fmtTerm(a, v3)}`;
+        const ans = `${a}(${v1}+${v2}+${v3})`;
         return { question: q, answer: ans };
       }
+      if (subType === 3) { // x(x + a)
+        const a = getRandomNonZeroInt(-6, 6);
+        const q = `${v1}^2${fmtTerm(a, v1)}`;
+        const ans = `${v1}(${v1}${fmtConst(a)})`;
+        return { question: q, answer: ans };
+      }
+      if (subType === 4) { // x(y + z + a)
+        const a = getRandomInt(0, 5);
+        const q = `${v1}${v2} + ${v1}${v3}${a === 0 ? '' : fmtTerm(a, v1)}`;
+        const ans = `${v1}(${v2}+${v3}${a === 0 ? '' : fmtConst(a)})`;
+        return { question: q, answer: ans };
+      }
+      if (subType === 5) { // ax(x + b)
+        let a = getRandomNonZeroInt(-4, 4);
+        if (a === 1 || a === -1) a = 3;
+        const b = getRandomNonZeroInt(-4, 4);
+        const q = `${fmtTerm(a, v1+'^2', true)}${fmtTerm(a*b, v1)}`;
+        const ans = `${fmtCoeff(a, true)}${v1}(${v1}${fmtConst(b)})`;
+        return { question: q, answer: ans };
+      }
+      if (subType === 6) { // ab(x + y + c)
+        let a = getRandomNonZeroInt(-3, 3);
+        if (a === 1 || a === -1) a = 2;
+        const q = `${fmtTerm(a, v1+v2, true)}${fmtTerm(a, v1+v3)}${fmtTerm(a, v1)}`;
+        const ans = `${fmtCoeff(a, true)}${v1}(${v2}+${v3}+1)`;
+        return { question: q, answer: ans };
+      }
+      return { question: `2x+2y`, answer: `2(x+y)` }; // fallback
     },
 
     // レベル2: 中学公式 (x+a)(x+b), (x+a)^2, (x+a)(x-a)
