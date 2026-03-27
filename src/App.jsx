@@ -56,9 +56,12 @@ const generateProblems = () => [
 
 function App() {
   useEffect(() => {
+    // Temporarily disabled for standalone debugging
+    /*
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
+    */
   }, []);
   const [problems] = useState(generateProblems());
   const [currentIdx, setCurrentIdx] = useState(0);

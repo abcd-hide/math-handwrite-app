@@ -124,6 +124,13 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       <div 
         ref={nodeRef} 
         style={{ width: '100%', height: '100%', touchAction: 'none' }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => {
+          if (e.target === nodeRef.current) e.preventDefault();
+        }}
+        onTouchMove={(e) => {
+          if (e.target === nodeRef.current) e.preventDefault();
+        }}
       />
       {status !== 'ready' && (
         <div style={{ position: 'absolute', top: 5, right: 5, fontSize: '10px', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }}>
