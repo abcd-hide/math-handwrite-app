@@ -41,55 +41,53 @@ const getRandGroup = () => variableGroups[getRandomInt(0, variableGroups.length 
 
 export const problemGenerators = {
   factorization: {
-    // レベル1: 中学くくりだし (3項以上、多文字、定数+文字混合対応)
+    // レベル1: 中学くくりだし (2項/3項混合、符号混合、係数多様化対応)
     level1: () => {
       const g = getRandGroup();
-      const v1 = g[0], v2 = g[1], v3 = g[2];
-      const subType = getRandomInt(1, 6);
+      const v = [...g]; // x, y, z
+      const numTerms = Math.random() > 0.4 ? 3 : 2;
+      const commonType = getRandomInt(1, 3); // 1: const, 2: var, 3: mixed
       
-      if (subType === 1) { // a(x + b)
-        let a = getRandomNonZeroInt(-6, 6);
-        if (a === 1 || a === -1) a = 2;
-        const b = getRandomNonZeroInt(-6, 6);
-        const q = `${fmtTerm(a, v1, true)}${fmtConst(a * b)}`;
-        const ans = `${a}(${v1}${fmtConst(b)})`;
-        return { question: q, answer: ans };
-      } 
-      if (subType === 2) { // a(x + y + z) 
-        let a = getRandomNonZeroInt(-5, 5);
-        if (a === 1 || a === -1) a = 4;
-        const q = `${fmtTerm(a, v1, true)}${fmtTerm(a, v2)}${fmtTerm(a, v3)}`;
-        const ans = `${a}(${v1}+${v2}+${v3})`;
-        return { question: q, answer: ans };
+      let cfNum = 1;
+      let cfVar = "";
+      
+      if (commonType === 1 || commonType === 3) {
+        cfNum = getRandomNonZeroInt(-6, 6);
+        if (cfNum === 1 || cfNum === -1) cfNum = (cfNum > 0 ? 2 : -2);
       }
-      if (subType === 3) { // x(x + a)
-        const a = getRandomNonZeroInt(-6, 6);
-        const q = `${v1}^2${fmtTerm(a, v1)}`;
-        const ans = `${v1}(${v1}${fmtConst(a)})`;
-        return { question: q, answer: ans };
+      if (commonType === 2 || commonType === 3) {
+        cfVar = v[0];
       }
-      if (subType === 4) { // x(y + z + a)
-        const a = getRandomInt(0, 5);
-        const q = `${v1}${v2} + ${v1}${v3}${a === 0 ? '' : fmtTerm(a, v1)}`;
-        const ans = `${v1}(${v2}+${v3}${a === 0 ? '' : fmtConst(a)})`;
-        return { question: q, answer: ans };
+
+      const terms = [];
+      for (let i = 0; i < numTerms; i++) {
+        let c = getRandomNonZeroInt(-4, 4);
+        if (i === 0) c = Math.abs(c); // First term positive inside for neatness
+        
+        // Pick a variable or constant
+        let tVar = v[i];
+        if (i === 0 && commonType === 2) tVar = v[0]; // will be v0^2
+        
+        terms.push({ c, v: tVar });
       }
-      if (subType === 5) { // ax(x + b)
-        let a = getRandomNonZeroInt(-4, 4);
-        if (a === 1 || a === -1) a = 3;
-        const b = getRandomNonZeroInt(-4, 4);
-        const q = `${fmtTerm(a, v1+'^2', true)}${fmtTerm(a*b, v1)}`;
-        const ans = `${fmtCoeff(a, true)}${v1}(${v1}${fmtConst(b)})`;
-        return { question: q, answer: ans };
-      }
-      if (subType === 6) { // ab(x + y + c)
-        let a = getRandomNonZeroInt(-3, 3);
-        if (a === 1 || a === -1) a = 2;
-        const q = `${fmtTerm(a, v1+v2, true)}${fmtTerm(a, v1+v3)}${fmtTerm(a, v1)}`;
-        const ans = `${fmtCoeff(a, true)}${v1}(${v2}+${v3}+1)`;
-        return { question: q, answer: ans };
-      }
-      return { question: `2x+2y`, answer: `2(x+y)` }; // fallback
+
+      let q = "";
+      let inner = "";
+      terms.forEach((t, i) => {
+        const finalC = cfNum * t.c;
+        const finalV = (cfVar && t.v === cfVar) ? `${cfVar}^2` : `${cfVar}${t.v}`;
+        q += fmtTerm(finalC, finalV, i === 0);
+        inner += fmtTerm(t.c, t.v, i === 0);
+      });
+
+      const leading = (cfNum === 1 && cfVar) ? cfVar : 
+                    (cfNum === -1 && cfVar) ? `-${cfVar}` :
+                    (cfNum === 1 && !cfVar) ? "1" :
+                    (cfNum === -1 && !cfVar) ? "-1" :
+                    `${cfNum}${cfVar}`;
+      
+      const ans = `${leading}(${inner})`;
+      return { question: q, answer: ans };
     },
 
     // レベル2: 中学公式 (x+a)(x+b), (x+a)^2, (x+a)(x-a)
