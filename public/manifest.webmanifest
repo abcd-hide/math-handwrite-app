@@ -2,16 +2,22 @@
   "name": "MathHandwrite Pro",
   "short_name": "MathMath",
   "description": "Premium Handwritten Math Practice App",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0f0f12",
   "theme_color": "#0f0f12",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3413/3413535.png",
+      "src": "pwa-icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
