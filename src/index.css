@@ -29,11 +29,6 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* Prevent bounce and touch hijacking on iOS PWA */
-  overscroll-behavior: none;
-  touch-action: none;
-  position: fixed;
-  width: 100%;
 }
 
 #root {
