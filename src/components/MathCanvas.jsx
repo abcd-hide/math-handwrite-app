@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
 
-const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen', theme = {}, penWidth = 0.7 }, ref) => {
+const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen', theme = {}, penWidth = 0.3 }, ref) => {
   const nodeRef = useRef(null);
   const editorRef = useRef(null);
   const onExportRef = useRef(onExport);
-  const [status, setStatus] = useState('initializing');
+  const [status, setStatus] = useState('Initializing...');
 
-  // Always keep a ref to the latest export handler to avoid closure traps
   useEffect(() => {
     onExportRef.current = onExport;
   }, [onExport]);
@@ -28,8 +27,9 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
   }));
 
   const initEditor = (iink) => {
-    if (!nodeRef.current) return;
+    if (!nodeRef.current || editorRef.current) return;
     
+    setStatus('Registering...');
     try {
       const editor = iink.register(nodeRef.current, {
         recognitionParams: {
@@ -45,18 +45,14 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
         },
         configuration: {
           rendering: {
-            maximumRatio: 1, // Prevent auto-scaling on iPad
-            penStyle: {
-              color: theme.color || '#FFFFFF',
-              '-myscript-pen-width': 0.4
-            }
+            maximumRatio: 1
           }
         },
         theme: getAppliedTheme()
       });
 
       editorRef.current = editor;
-      setStatus('ready');
+      setStatus('Ready');
 
       const handleExport = (event) => {
         const exports = event.detail.exports;
@@ -69,24 +65,15 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       nodeRef.current.addEventListener('exported', handleExport);
 
       window.addEventListener('resize', () => editor.resize());
-
-      // Initial theme & pen style enforcement
-      setTimeout(() => {
-        if (editorRef.current) {
-          const color = theme.color || '#FFFFFF';
-          editorRef.current.penStyle = `color: ${color}; -myscript-pen-width: ${penWidth}; -myscript-pen-fill-style: none;`;
-          editorRef.current.theme = getAppliedTheme();
-        }
-      }, 500);
     } catch (err) {
       console.error('iink registration failed', err);
-      setStatus('error');
+      setStatus('Error: ' + err.message);
     }
   };
 
   useEffect(() => {
     if (!applicationKey || !hmackey) {
-      setStatus('waiting-keys');
+      setStatus('Missing API Keys');
       return;
     }
 
@@ -95,9 +82,9 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       if (window.iink) {
         clearInterval(interval);
         initEditor(window.iink);
-      } else if (checkCount > 10) {
+      } else if (checkCount > 20) {
         clearInterval(interval);
-        setStatus('lib-error');
+        setStatus('Library Load Error (iink missing)');
       }
       checkCount++;
     }, 500);
@@ -106,28 +93,29 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       clearInterval(interval);
       if (editorRef.current) {
         editorRef.current.close();
+        editorRef.current = null;
       }
     };
   }, [applicationKey, hmackey]);
 
   useEffect(() => {
     if (editorRef.current) {
-      const color = theme.color || '#FFFFFF';
       editorRef.current.tool = tool;
+      const color = theme.color || '#FFFFFF';
       editorRef.current.penStyle = `color: ${color}; -myscript-pen-width: ${penWidth}; -myscript-pen-fill-style: none;`;
       editorRef.current.theme = getAppliedTheme();
     }
-  }, [tool, penWidth]);
+  }, [tool]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: '#000' }}>
       <div 
         ref={nodeRef} 
         style={{ width: '100%', height: '100%', touchAction: 'none' }}
       />
-      {status !== 'ready' && (
-        <div style={{ position: 'absolute', top: 5, right: 5, fontSize: '10px', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }}>
-          Status: {status}
+      {status !== 'Ready' && (
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(0,0,0,0.8)', padding: '10px 20px', borderRadius: '10px', color: '#fff', fontSize: '14px', zIndex: 100, border: '1px solid #fff' }}>
+           Canvas Status: {status}
         </div>
       )}
     </div>
