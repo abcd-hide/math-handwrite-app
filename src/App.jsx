@@ -16,6 +16,7 @@ const cleanMath = (latex) => {
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
   s = s.replace(/\\ /g, ''); // Remove latex spaces
+  s = s.replace(/\s+/g, ''); // Remove all other spaces
   
   // Implicit multiplication: 2x -> 2*x, xy -> x*y, x( -> x*(, etc.
   s = s.replace(/(\d)([a-z])/gi, '$1*$2');
@@ -27,19 +28,31 @@ const cleanMath = (latex) => {
   return s;
 };
 
+// Function to normalize LaTeX for better KaTeX rendering
+const cleanLatexForDisplay = (latex) => {
+  if (!latex) return "";
+  let s = latex;
+  // MyScript sometimes adds incomplete \left \right or extra dots
+  s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
+  // Simplify parentheses if KaTeX struggles with \left( \right)
+  // s = s.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
+  return s;
+};
+
 // Robust check for mathematical equivalence
 const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
   try {
     const cleanedInput = cleanMath(inputLatex);
+    const cleanedTarget = cleanMath(targetMath);
     
     if (isEquation) {
       // For equations like x=4, just check string equality on cleaned versions
-      return cleanedInput.replace(/\s/g, '').toLowerCase() === targetMath.replace(/\s/g, '').toLowerCase();
+      return cleanedInput.replace(/\s/g, '').toLowerCase() === cleanedTarget.replace(/\s/g, '').toLowerCase();
     }
 
     // For expressions, evaluate at multiple points with multiple variables
     const node1 = math.parse(cleanedInput);
-    const node2 = math.parse(targetMath);
+    const node2 = math.parse(cleanedTarget);
     
     // Variables encountered in these levels: x, y, a, b, c
     const testPoints = [
@@ -228,7 +241,7 @@ function App() {
       <footer className="footer">
         <button className="btn btn-clear" onClick={handleClear}><Trash2 size={20} /> 全クリア</button>
         <div className="stats-card" style={{ flex: 1, justifyContent: 'center', fontSize: '18px', border: '1px dashed var(--accent-color)', minWidth: '200px', height: '50px' }}>
-           {answerInput ? <InlineMath math={answerInput} /> : <span style={{ opacity: 0.5, fontSize: '14px' }}>解答プレビュー</span>}
+           {answerInput ? <InlineMath math={cleanLatexForDisplay(answerInput)} /> : <span style={{ opacity: 0.5, fontSize: '14px' }}>解答プレビュー</span>}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn" onClick={toggleSolution}><Eye size={20} /> {showSolution ? '解答を隠す' : '答えをみる'}</button>

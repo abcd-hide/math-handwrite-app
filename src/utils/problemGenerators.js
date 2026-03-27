@@ -31,20 +31,32 @@ const fmtTerm = (coeff, term, first = false) => {
 
 export const problemGenerators = {
   factorization: {
-    // レベル1: 中学くくりだし a(x + b) or ax + ay
+    // レベル1: 中学くくりだし a(x + b) or ax + ay or x(x + a) or xy(x + y)
     level1: () => {
-      const type = Math.random() > 0.5 ? 'common_x' : 'common_xy';
-      if (type === 'common_x') {
+      const types = ['common_const', 'common_xy_const', 'common_var_x', 'common_var_xy'];
+      const type = types[getRandomInt(0, types.length - 1)];
+      
+      if (type === 'common_const') {
         const a = getRandomNonZeroInt(-5, 5);
         const b = getRandomNonZeroInt(-5, 5);
-        // a*x + a*b
         const q = `${fmtTerm(a, 'x', true)}${fmtConst(a * b)}`;
         const ans = `${a}(x${fmtConst(b)})`;
         return { question: q, answer: ans };
-      } else {
+      } else if (type === 'common_xy_const') {
         const a = getRandomNonZeroInt(-5, 5);
         const q = `${fmtTerm(a, 'x', true)}${fmtTerm(a, 'y')}`;
         const ans = `${a}(x+y)`;
+        return { question: q, answer: ans };
+      } else if (type === 'common_var_x') {
+        const a = getRandomNonZeroInt(-5, 5);
+        // x^2 + ax = x(x+a)
+        const q = `x^2${fmtTerm(a, 'x')}`;
+        const ans = `x(x${fmtConst(a)})`;
+        return { question: q, answer: ans };
+      } else {
+        // x^2y + xy^2 = xy(x+y)
+        const q = `x^2y + xy^2`;
+        const ans = `xy(x+y)`;
         return { question: q, answer: ans };
       }
     },
