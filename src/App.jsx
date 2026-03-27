@@ -6,6 +6,7 @@ import { InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import MathCanvas from './components/MathCanvas';
 import './index.css';
+import { generateProblem } from './utils/problemGenerators';
 
 // Function to clean MyScript LaTeX and make it mathjs-friendly
 const cleanMath = (latex) => {
@@ -15,8 +16,14 @@ const cleanMath = (latex) => {
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
   s = s.replace(/\\ /g, ''); // Remove latex spaces
-  s = s.replace(/(\d)\(/g, '$1*('); // 2(x) -> 2*(x)
-  s = s.replace(/\)\(/g, ')*('); // (x)(y) -> (x)*(y)
+  
+  // Implicit multiplication: 2x -> 2*x, xy -> x*y, x( -> x*(, etc.
+  s = s.replace(/(\d)([a-z])/gi, '$1*$2');
+  s = s.replace(/([a-z])(?=[a-z])/gi, '$1*');
+  s = s.replace(/([a-z])(\()/gi, '$1*$2');
+  s = s.replace(/(\))([a-z0-9])/gi, '$1*$2');
+  s = s.replace(/\)\(/g, ')*(');
+  
   return s;
 };
 
@@ -30,16 +37,28 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
       return cleanedInput.replace(/\s/g, '').toLowerCase() === targetMath.replace(/\s/g, '').toLowerCase();
     }
 
-    // For expressions (factorization, etc.), evaluate at random points
+    // For expressions, evaluate at multiple points with multiple variables
     const node1 = math.parse(cleanedInput);
     const node2 = math.parse(targetMath);
     
-    // Test with multiple points to be safe
-    const testPoints = [1.5, 2.7, -3.1];
-    return testPoints.every(x => {
-      const v1 = node1.evaluate({ x });
-      const v2 = node2.evaluate({ x });
-      return Math.abs(v1 - v2) < 1e-8;
+    // Variables encountered in these levels: x, y, a, b, c
+    const testPoints = [
+      { x: 1.5, y: 2.7, a: 0.5, b: 1.2, c: -0.8 },
+      { x: -2.1, y: 0.3, a: 1.5, b: -2.4, c: 3.1 },
+      { x: 0.7, y: -1.5, a: -1.1, b: 0.8, c: 1.9 },
+      { x: 3.3, y: 1.1, a: 2.2, b: 0.5, c: -2.5 }
+    ];
+    
+    return testPoints.every(scope => {
+      try {
+        const v1 = node1.evaluate(scope);
+        const v2 = node2.evaluate(scope);
+        // Using a relative error or small epsilon
+        if (isNaN(v1) || isNaN(v2)) return false;
+        return Math.abs(v1 - v2) < 1e-7;
+      } catch (e) {
+        return false;
+      }
     });
   } catch (e) {
     console.warn('Math comparison failed', e);
@@ -47,21 +66,13 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
   }
 };
 
-const generateProblems = () => [
-  { id: 1, type: '方程式を解け', question: '2x + 5 = 13', answer: 'x=4', check: (input) => areEquivalent(input, 'x=4', true) },
-  { id: 2, type: '因数分解せよ', question: 'x^2 - 4', answer: '(x-2)(x+2)', check: (input) => areEquivalent(input, '(x-2)*(x+2)') },
-  { id: 3, type: '計算せよ', question: '\\sqrt{144}', answer: '12', check: (input) => areEquivalent(input, '12') },
-  { id: 4, type: '方程式を解け', question: '3(x + 2) = 15', answer: 'x=3', check: (input) => areEquivalent(input, 'x=3', true) },
-];
+// Default initial problems removed in favor of dynamic generation
 
 function App() {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
-  }, []);
-  const [problems] = useState(generateProblems());
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const [category, setCategory] = useState('factorization');
+  const [level, setLevel] = useState(1);
+  const [currentProblem, setCurrentProblem] = useState(null);
+  const [currentIdx, setCurrentIdx] = useState(0); // For display purpose
   const [scratchpadInput, setScratchpadInput] = useState('');
   const [answerInput, setAnswerInput] = useState('');
   const [isCorrect, setIsCorrect] = useState(null);
@@ -70,6 +81,24 @@ function App() {
   const [tool, setTool] = useState('pen'); 
   const [showSolution, setShowSolution] = useState(false);
   const [clearTrigger, setClearTrigger] = useState(0);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+    // Generate first problem
+    refreshProblem(category, level);
+  }, []);
+
+  const refreshProblem = (cat, lvl) => {
+    const prob = generateProblem(cat, lvl);
+    if (prob) {
+      setCurrentProblem({
+        ...prob,
+        check: (input) => areEquivalent(input, prob.answer)
+      });
+    }
+  };
   
   const scratchpadRef = useRef();
   const answerAreaRef = useRef();
@@ -79,7 +108,7 @@ function App() {
     hmac: localStorage.getItem('ms-hmac-key') || ''
   });
 
-  const currentProblem = problems[currentIdx];
+  if (!currentProblem) return <div className="app-container">Loading...</div>;
 
   const checkAnswer = () => {
     if (!answerInput) return;
@@ -94,7 +123,17 @@ function App() {
     setIsCorrect(null);
     setShowSolution(false);
     handleClear();
-    setCurrentIdx((prev) => (prev + 1) % problems.length);
+    setCurrentIdx(prev => prev + 1);
+    refreshProblem(category, level);
+  };
+
+  const changeLevel = (newLvl) => {
+    setLevel(newLvl);
+    setIsCorrect(null);
+    setShowSolution(false);
+    handleClear();
+    setCurrentIdx(0);
+    refreshProblem(category, newLvl);
   };
 
   const handleClear = () => {
@@ -124,7 +163,19 @@ function App() {
         </div>
         <div className="stats-card">
           <span><Trophy size={14} inline color="#FFD700" /> スコア: {score}</span>
-          <span>問題: {currentIdx + 1} / {problems.length}</span>
+          <span style={{ marginLeft: '10px' }}>問題: {currentIdx + 1}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', padding: '5px 15px', borderRadius: '20px', border: '1px solid var(--glass-border)' }}>
+          <label style={{ fontSize: '12px', opacity: 0.7 }}>レベル:</label>
+          <select 
+            value={level} 
+            onChange={(e) => changeLevel(parseInt(e.target.value))}
+            style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            {[...Array(10)].map((_, i) => (
+              <option key={i + 1} value={i + 1} style={{ background: '#1a1a1e' }}>Level {i + 1}</option>
+            ))}
+          </select>
         </div>
         <button className="btn" style={{ padding: '8px' }} onClick={() => setShowSettings(true)}><Settings size={18} /></button>
       </header>
