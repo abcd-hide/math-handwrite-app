@@ -1,6 +1,5 @@
-const CACHE_NAME = 'math-app-v1';
+const CACHE_NAME = 'math-app-v2';
 const ASSETS = [
-  '.',
   'index.html',
   'manifest.webmanifest',
   'pwa-icon.png'
@@ -22,7 +21,14 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  
+  // Do NOT cache CDN or external MyScript requests - let them pass through normally
+  if (url.hostname.includes('unpkg.com') || url.hostname.includes('myscript.com')) {
+    return; // default browser behavior
+  }
+
   e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
