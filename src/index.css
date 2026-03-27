@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+:root {
+  --bg-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg-accent: rgba(127, 90, 240, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --accent-color: #7f5af0;
+  --text-primary: #fffffe;
+  --text-secondary: #94a1b2;
+  --success-color: #2cb67d;
+  --error-color: #ef4565;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 15px;
+  gap: 15px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Header */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(to right, #7f5af0, #2cb67d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stats-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  padding: 6px 14px;
+  border-radius: 10px;
+  display: flex;
+  gap: 15px;
+  font-size: 13px;
+}
+
+/* Problem Area */
+.problem-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  padding: 20px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.problem-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+.problem-text {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+/* Main Workspace */
+.workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Sections */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.canvas-container {
+  flex: 1;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scratchpad-area {
+  flex: 2; /* Large Area */
+}
+
+.answer-area {
+  flex: 1; /* Small Area */
+  background: var(--glass-bg-accent);
+  border: 1px solid var(--accent-color);
+}
+
+/* Tool Bar */
+.toolbar {
+  display: flex;
+  gap: 10px;
+}
+
+.tool-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.tool-btn.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+/* Footer Controls */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: #9471f2;
+}
+
+.btn-clear {
+  color: var(--error-color);
+}
+
+/* Overlay & Modals */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #16161a;
+  padding: 30px;
+  border-radius: 24px;
+  border: 1px solid var(--accent-color);
+  text-align: center;
+  width: 90%;
+  max-width: 450px;
+}
+
+/* NUCLEAR: Force extreme thinness and solid white color (fill + stroke) */
+:root {
+  --ms-pen-width: 0.3px !important;
+  --ms-ink-color: #FFFFFF !important;
+}
+
+.ms-editor svg path, 
+[ref="nodeRef"] svg path {
+  stroke: #FFFFFF !important;
+  fill: #FFFFFF !important;  /* Make the inside white too */
+  stroke-width: 0.3px !important;
+}
+
+/* Force answer area as well */
+.answer-area svg path {
+  stroke: #00FF99 !important;
+  fill: #00FF99 !important;
+  stroke-width: 0.3px !important;
+}
+
+/* Hide iink-js default loader and background grid */
+.ms-loader, .ms-loading {
+  display: none !important;
+}
+.ms-editor {
+  background-image: none !important;
+  background-color: transparent !important;
+}
+canvas.ms-canvas {
+  background-color: transparent !important;
+}
