@@ -72,6 +72,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [tool, setTool] = useState('pen'); 
   const [showSolution, setShowSolution] = useState(false);
+  const [clearTrigger, setClearTrigger] = useState(0);
   
   const scratchpadRef = useRef();
   const answerAreaRef = useRef();
@@ -103,8 +104,7 @@ function App() {
     setAnswerInput('');
     setScratchpadInput('');
     setIsCorrect(null);
-    if (scratchpadRef.current) scratchpadRef.current.clear();
-    if (answerAreaRef.current) answerAreaRef.current.clear();
+    setClearTrigger(prev => prev + 1);
   };
 
   const toggleSolution = () => setShowSolution(!showSolution);
@@ -151,6 +151,7 @@ function App() {
             hmackey={keys.hmac}
             tool={tool}
             penWidth={0.3}
+            clearTrigger={clearTrigger}
           />
         </section>
 
@@ -166,6 +167,7 @@ function App() {
             tool={tool}
             penWidth={0.3}
             theme={{ color: '#00FF99' }}
+            clearTrigger={clearTrigger}
           />
           {showSolution && (
             <div style={{ position: 'absolute', bottom: 10, right: 15, background: 'rgba(0,100,50,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid #00FF99', color: '#00FF99', fontWeight: 'bold', zIndex: 20 }}>

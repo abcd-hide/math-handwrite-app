@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
 
-const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen', theme = {}, penWidth = 0.3 }, ref) => {
+const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen', theme = {}, penWidth = 0.3, clearTrigger = 0 }, ref) => {
   const nodeRef = useRef(null);
   const editorRef = useRef(null);
   const onExportRef = useRef(onExport);
@@ -26,12 +26,19 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
     }
   }));
 
-  const initEditor = (iink) => {
-    if (!nodeRef.current || editorRef.current) return;
+  // Reactive Clear
+  useEffect(() => {
+    if (clearTrigger > 0 && editorRef.current) {
+      console.log("MathCanvas: Reactive Clear");
+      editorRef.current.clear();
+    }
+  }, [clearTrigger]);
+
+  const initEditor = () => {
+    if (!nodeRef.current || editorRef.current || !window.iink) return;
     
-    setStatus('Registering...');
     try {
-      const editor = iink.register(nodeRef.current, {
+      const editor = window.iink.register(nodeRef.current, {
         recognitionParams: {
           type: 'MATH',
           protocol: 'WEBSOCKET',
@@ -64,7 +71,14 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       };
       nodeRef.current.addEventListener('exported', handleExport);
 
-      window.addEventListener('resize', () => editor.resize());
+      window.addEventListener('resize', () => {
+        if (editorRef.current) editorRef.current.resize();
+      });
+      
+      setTimeout(() => {
+        if (editorRef.current) editorRef.current.resize();
+      }, 500);
+
     } catch (err) {
       console.error('iink registration failed', err);
       setStatus('Error: ' + err.message);
@@ -77,20 +91,16 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       return;
     }
 
-    let checkCount = 0;
-    const interval = setInterval(() => {
+    // Wait for window.iink to be available
+    const checkIink = setInterval(() => {
       if (window.iink) {
-        clearInterval(interval);
-        initEditor(window.iink);
-      } else if (checkCount > 20) {
-        clearInterval(interval);
-        setStatus('Library Load Error (iink missing)');
+        clearInterval(checkIink);
+        initEditor();
       }
-      checkCount++;
-    }, 500);
+    }, 100);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(checkIink);
       if (editorRef.current) {
         editorRef.current.close();
         editorRef.current = null;
@@ -105,7 +115,7 @@ const MathCanvas = forwardRef(({ onExport, applicationKey, hmackey, tool = 'pen'
       editorRef.current.penStyle = `color: ${color}; -myscript-pen-width: ${penWidth}; -myscript-pen-fill-style: none;`;
       editorRef.current.theme = getAppliedTheme();
     }
-  }, [tool]);
+  }, [tool, theme, penWidth]);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: '#000' }}>
