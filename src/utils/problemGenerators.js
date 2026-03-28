@@ -345,35 +345,70 @@ export const problemGenerators = {
       if (type === 1) { // 組み換えによる平方の差: x^2 + 2ax + a^2 - y^2
         const v2 = g[1];
         const a = getRandomNonZeroInt(-4, 4);
-        const q = `${v}^2 ${fmtTerm(2*a, v)} ${fmtConst(a*a)} - ${v2}^2`;
+        const terms = [
+          { c: 1, t: `${v}^2` },
+          { c: 2*a, t: v },
+          { c: a*a, t: "" },
+          { c: -1, t: `${v2}^2` }
+        ].sort(() => Math.random() - 0.5);
+        let q = "";
+        terms.forEach((item, i) => {
+          if (item.t === "") q += (i > 0 ? " " : "") + fmtConst(item.c, i === 0);
+          else q += (i > 0 ? " " : "") + fmtTerm(item.c, item.t, i === 0);
+        });
         const ans = `(${v}${fmtConst(a)}+${v2})(${v}${fmtConst(a)}-${v2})`;
         return { question: q, answer: ans };
-      } else if (type === 2) { // 共通因数と置き換えの複合 (ユーザー例示参考)
+      } else if (type === 2) { // 共通因数と置き換えの複合
         const v2 = g[1], v3 = g[2];
         const k = getRandomNonZeroInt(2, 3);
-        // k*c * ((a-b)^2 + 2(a-b)*2c + (2c)^2) = k*c * (a-b+2c)^2
-        const q = `${k}${v3}${v[0]}^2 - ${2*k}${v3}${v[0]}${v2} + ${k}${v3}${v2}^2 + ${4*k}(${v[0]}-${v2})${v3}^2 + ${4*k}${v3}^3`;
-        const ans = `${k}${v3}(${v[0]}-${v2}+2${v3})^2`;
+        const a = getRandomNonZeroInt(-2, 2);
+        // k*v3 * ( (v1-v2)^2 + 2a(v1-v2)v3 + a^2v3^2 )
+        const q = `${k}${v3}${v[0]}^2 - ${2*k}${v3}${v[0]}${v2} + ${k}${v3}${v2}^2 ${fmtTerm(2*a*k, `(${v[0]}-${v2})${v3}^2`)} ${fmtTerm(k*a*a, v3+'^3')}`;
+        const ans = `${k}${v3}(${v[0]}-${v2}${fmtTerm(a, v3)})^2`;
         return { question: q, answer: ans };
       } else if (type === 3) { // (x+a)(x+b)(x+c)(x+d)+k (a+b=c+d)
-        // (x+1)(x+2)(x+3)(x+4)-48 -> (x^2+5x+4)(x^2+5x+6)-48
-        const a=1, b=4, c=2, d=3, k=-48;
-        const q = `(${v}+1)(${v}+2)(${v}+3)(${v}+4)${k}`;
-        const ans = `(${v}^2+5${v}+12)(${v}^2+5${v}-2)`;
+        let a, b, c, d;
+        while(true) {
+          a = getRandomInt(-4, 4); b = getRandomInt(-4, 4); c = getRandomInt(-4, 4);
+          d = a + b - c;
+          if (new Set([a, b, c, d]).size >= 3 && Math.abs(d) <= 6) break;
+        }
+        const ab = a * b, cd = c * d, S = a + b;
+        const m = ab + getRandomNonZeroInt(-3, 3);
+        const n = ab + cd - (m - ab); // n = ab + cd - X where X is offset. Wait.
+        // Actually m, n such that m+n = ab+cd
+        const offset = getRandomNonZeroInt(-3, 3);
+        const resM = ab + offset, resN = cd - offset;
+        const k = resM * resN - ab * cd;
+        const q = `(${v}${fmtConst(a)})(${v}${fmtConst(b)})(${v}${fmtConst(c)})(${v}${fmtConst(d)})${fmtConst(k)}`;
+        const ans = `(${v}^2${fmtTerm(S, v)}${fmtConst(resM)})(${v}^2${fmtTerm(S, v)}${fmtConst(resN)})`;
         return { question: q, answer: ans };
       } else if (type === 4) { // (x+a)(x+b)(x+c)(x+d)+kx^2 (ac=bd)
-        // (x-1)(x-2)(x+2)(x+4)+2x^2
-        const q = `(${v}-1)(${v}-2)(${v}+2)(${v}+4)+2${v}^2`;
-        const ans = `(${v}^2+${v}-4)(${v}^2+2${v}-4)`;
+        const pairs = [[-1, 4, -2, 2], [-1, -4, -2, -2], [1, 4, 2, 2], [1, -4, -2, 2], [-2, 3, -1, 6]];
+        const p = pairs[getRandomInt(0, pairs.length - 1)];
+        const a=p[0], c=p[1], b=p[2], d=p[3], P=a*c;
+        const s1 = a + c, s2 = b + d;
+        const offset = getRandomNonZeroInt(-2, 2);
+        const resM = s1 + offset, resN = s2 - offset;
+        const k = resM * resN - s1 * s2;
+        const q = `(${v}${fmtConst(a)})(${v}${fmtConst(c)})(${v}${fmtConst(b)})(${v}${fmtConst(d)})${fmtTerm(k, v+'^2')}`;
+        const ans = `(${v}^2${fmtTerm(resM, v)}${fmtConst(P)})(${v}^2${fmtTerm(resN, v)}${fmtConst(P)})`;
         return { question: q, answer: ans };
-      } else if (type === 5) { // 多段置き換え: (x^2+x)^2 - 8(x^2+x) + 12
-        const q = `(${v}^2+${v})^2 - 8(${v}^2+${v}) + 12`;
-        const ans = `(${v}+3)(${v}-2)(${v}+2)(${v}-1)`;
-        return { question: q, answer: ans };
+      } else if (type === 5) { // 多段置き換え: (x+p)(x+q)(x+r)(x+s)
+        const a = getRandomInt(-2, 2);
+        const p = getRandomInt(-3, 3), q = a - p;
+        const r = getRandomInt(-3, 3), s = a - r;
+        if (p*q === r*s || (p+q) !== (r+s)) return problemGenerators.factorization.level6(); 
+        const m = p * q, n = r * s;
+        const qStr = `(${v}^2${fmtTerm(a, v)})^2 ${fmtTerm(m + n, '('+v+'^2'+fmtTerm(a, v)+')')} ${fmtConst(m * n)}`;
+        const ans = `(${v}${fmtConst(p)})(${v}${fmtConst(q)})(${v}${fmtConst(r)})(${v}${fmtConst(s)})`;
+        return { question: qStr, answer: ans };
       } else { // 共通因数くくり出し後の多段分解
-        // x(x+1)^2 + 2(x+1)(2x+1)... (修正版)
-        const q = `${v}^2(${v}+1)^2 + 2${v}(${v}+1)(2${v}+1) + 4${v}(${v}+1)`;
-        const ans = `${v}(${v}+1)(${v}+2)(${v}+3)`;
+        const a = getRandomInt(-3, 3), b = getRandomInt(-3, 3);
+        if (a === b || a === 0 || b === 0) return problemGenerators.factorization.level6();
+        const c = getRandomNonZeroInt(-2, 2);
+        const q = `${v}^2(${v}${fmtConst(c)})^2 ${fmtTerm(a + b - c, v+'^2('+v+fmtConst(c)+')')} ${fmtTerm(a * b, v+'('+v+fmtConst(c)+')')}`;
+        const ans = `${v}(${v}${fmtConst(c)})(${v}${fmtConst(a)})(${v}${fmtConst(b)})`;
         return { question: q, answer: ans };
       }
     },
