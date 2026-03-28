@@ -9,6 +9,12 @@ const getRandomNonZeroInt = (min, max) => {
   return res;
 };
 
+const gcd = (a, b) => {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  return b === 0 ? a : gcd(b, a % b);
+};
+
 // 定数項の処理
 const fmtConst = (n, first = false) => {
   if (n === 0 || n === undefined) return "";
@@ -101,13 +107,24 @@ export const problemGenerators = {
       }
       if (commonType === 2 || commonType === 3) cfVar = v[0];
 
+      let cArray = [];
+      while (true) {
+        cArray = [];
+        let currentGcd = 0;
+        for (let i = 0; i < numTerms; i++) {
+          let c = getRandomNonZeroInt(-4, 4);
+          if (i === 0) c = Math.abs(c);
+          cArray.push(c);
+          currentGcd = (i === 0) ? Math.abs(c) : gcd(currentGcd, c);
+        }
+        if (currentGcd === 1) break;
+      }
+
       const terms = [];
       for (let i = 0; i < numTerms; i++) {
-        let c = getRandomNonZeroInt(-4, 4);
-        if (i === 0) c = Math.abs(c);
         let tVar = v[i];
         if (i === 0 && commonType === 2) tVar = v[0];
-        terms.push({ c, v: tVar });
+        terms.push({ c: cArray[i], v: tVar });
       }
 
       let q = "", innerPoly = { const: 0 };
@@ -242,7 +259,7 @@ export const problemGenerators = {
       const g = getRandGroup();
       const v1 = g[0], v2 = g[1];
       const a = getRandomNonZeroInt(-3, 3);
-      const q = `${fmtTerm(a, v1+v2)} ${fmtTerm(-a, v2)} + ${v1}^2 - ${v1} - 2`;
+      const q = `${fmtTerm(a, v1+v2, true)} ${fmtTerm(a, v2)} + ${v1}^2 - ${v1} - 2`;
       const f1 = stringifyPoly({ [v1]: 1, [v2]: a, const: -2 }, [v1, v2]);
       const f2 = stringifyPoly({ [v1]: 1, const: 1 }, [v1]);
       return { question: q, answer: formatFactors([f1, f2]) };
