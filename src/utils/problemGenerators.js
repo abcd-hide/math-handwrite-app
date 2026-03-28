@@ -92,14 +92,58 @@ const variableGroups = [
 
 const getRandGroup = () => variableGroups[getRandomInt(0, variableGroups.length - 1)];
 
+class PatternQueue {
+  constructor(patterns) {
+    this.patterns = patterns;
+    this.queue = [];
+    this.isRandomPhase = false;
+  }
+  next() {
+    if (this.isRandomPhase) {
+      return this.patterns[Math.floor(Math.random() * this.patterns.length)];
+    }
+    if (this.queue.length === 0) {
+      this.queue = [...this.patterns].sort(() => Math.random() - 0.5);
+    }
+    const val = this.queue.pop();
+    if (this.queue.length === 0) {
+      this.isRandomPhase = true;
+    }
+    return val;
+  }
+}
+
+const levelQueues = {
+  level1: new PatternQueue([
+    { numTerms: 2, commonType: 1 }, { numTerms: 2, commonType: 2 }, { numTerms: 2, commonType: 3 },
+    { numTerms: 3, commonType: 1 }, { numTerms: 3, commonType: 2 }, { numTerms: 3, commonType: 3 }
+  ]),
+  level2: new PatternQueue([
+    { subType: 1, isHomogeneous: true }, { subType: 1, isHomogeneous: false },
+    { subType: 2, isHomogeneous: true }, { subType: 2, isHomogeneous: false },
+    { subType: 3, isHomogeneous: true }, { subType: 3, isHomogeneous: false }
+  ]),
+  level3: new PatternQueue([
+    { isHomogeneous: true }, { isHomogeneous: false }
+  ]),
+  level4: new PatternQueue([
+    { baseLevel: 1 }, { baseLevel: 2, subType: 1 }, { baseLevel: 2, subType: 2 }, { baseLevel: 2, subType: 3 }, { baseLevel: 3 }
+  ]),
+  level5: new PatternQueue([0, 1, 2, 3, 4, 5, 6, 7]),
+  level6: new PatternQueue([1, 2, 3, 4, 5, 6]),
+  level7: new PatternQueue([1, 2]),
+  level8: new PatternQueue([1, 2])
+};
+
 export const problemGenerators = {
   factorization: {
     // レベル1: 中学くくりだし
     level1: () => {
       const g = getRandGroup();
       const v = [...g];
-      const numTerms = Math.random() > 0.4 ? 3 : 2;
-      const commonType = getRandomInt(1, 3);
+      const p = levelQueues.level1.next();
+      const numTerms = p.numTerms;
+      const commonType = p.commonType;
       let cfNum = 1, cfVar = "";
       if (commonType === 1 || commonType === 3) {
         cfNum = getRandomNonZeroInt(-6, 6);
@@ -152,8 +196,9 @@ export const problemGenerators = {
     level2: () => {
       const g = getRandGroup();
       const v1 = g[0], v2 = g[1];
-      const isHomogeneous = Math.random() < 0.4;
-      const subType = getRandomInt(1, 3);
+      const p = levelQueues.level2.next();
+      const isHomogeneous = p.isHomogeneous;
+      const subType = p.subType;
       
       if (subType === 1) { // (x+a)(x+b)
         const a = getRandomNonZeroInt(-6, 6);
@@ -181,7 +226,8 @@ export const problemGenerators = {
     level3: () => {
       const g = getRandGroup();
       const v = g[0], v2 = g[1];
-      const isHomogeneous = Math.random() < 0.4;
+      const p = levelQueues.level3.next();
+      const isHomogeneous = p.isHomogeneous;
       let a, b, c, d;
       while(true) {
         a = getRandomNonZeroInt(-3, 3); b = getRandomNonZeroInt(-5, 5);
@@ -213,7 +259,8 @@ export const problemGenerators = {
       };
 
       const X = makeTerm(v1, v2);
-      const baseLevel = getRandomInt(1, 3);
+      const p = levelQueues.level4.next();
+      const baseLevel = p.baseLevel;
 
       if (baseLevel === 1) { // leading(X+a)(X+b)
         const k = getRandomNonZeroInt(-3, 3);
@@ -224,7 +271,7 @@ export const problemGenerators = {
         const f2 = stringifyPoly({ [v1]: X.a, [v2]: X.b, const: b }, [v1, v2]);
         return { question: q, answer: formatFactors([f1, f2], k === 1 ? "" : (k === -1 ? "-" : k)) };
       } else if (baseLevel === 2) { // (X+a)(X+b) etc
-        const subType = getRandomInt(1, 3);
+        const subType = p.subType;
         if (subType === 1) {
           const a = getRandomNonZeroInt(-5, 5);
           let b = getRandomNonZeroInt(-5, 5); if (a === b) b++;
@@ -258,7 +305,7 @@ export const problemGenerators = {
     level5: () => {
       const g = getRandGroup();
       const v1 = g[0], v2 = g[1], v3 = g[2];
-      const type = getRandomInt(0, 7);
+      const type = levelQueues.level5.next();
 
       if (type === 0) {
         // パターン0: kxy + kcy + x^2 + (c+d)x + cd => (x+c)(x+d+ky)
@@ -349,10 +396,10 @@ export const problemGenerators = {
     },
 
     // レベル6: 高度な組み合わせ・多段因数分解
-    level6: () => {
+    level6: (forcedType) => {
       const g = getRandGroup();
       const v = g[0];
-      const type = getRandomInt(1, 6);
+      const type = forcedType !== undefined ? forcedType : levelQueues.level6.next();
       
       if (type === 1) { // 組み換えによる平方の差
         const v2 = g[1], a = getRandomNonZeroInt(-4, 4);
@@ -385,14 +432,14 @@ export const problemGenerators = {
         return { question: q, answer: formatFactors([f1, f2]) };
       } else if (type === 5) { // 多段置き換え
         const a = getRandomInt(-2, 2), p = getRandomInt(-3, 3), q = a - p, r = getRandomInt(-3, 3), s = a - r;
-        if (p*q === r*s || (p+q) !== (r+s)) return problemGenerators.factorization.level6(); 
+        if (p*q === r*s || (p+q) !== (r+s)) return problemGenerators.factorization.level6(type); 
         const m = p * q, n = r * s;
         const qStr = `(${v}^2${fmtTerm(a, v)})^2 ${fmtTerm(m + n, '('+v+'^2'+fmtTerm(a, v)+')')} ${fmtConst(m * n)}`;
         const factors = [p, q, r, s].map(c => stringifyPoly({ [v]: 1, const: c }, [v]));
         return { question: qStr, answer: formatFactors(factors) };
       } else { // 共通因数くくり出し後の多段分解
         const a = getRandomInt(-3, 3), b = getRandomInt(-3, 3);
-        if (a === b || a === 0 || b === 0) return problemGenerators.factorization.level6();
+        if (a === b || a === 0 || b === 0) return problemGenerators.factorization.level6(type);
         const c = getRandomNonZeroInt(-2, 2);
         const q = `${v}^2(${v}${fmtConst(c)})^2 ${fmtTerm(a + b - c, v+'^2('+v+fmtConst(c)+')')} ${fmtTerm(a * b, v+'('+v+fmtConst(c)+')')}`;
         const factors = [v, stringifyPoly({ [v]: 1, const: c }, [v]), stringifyPoly({ [v]: 1, const: a }, [v]), stringifyPoly({ [v]: 1, const: b }, [v])];
@@ -403,7 +450,7 @@ export const problemGenerators = {
     // レベル7: 複2次式
     level7: () => {
       const g = getRandGroup();
-      const v = g[0], subType = Math.random() > 0.5 ? 1 : 2;
+      const v = g[0], subType = levelQueues.level7.next();
       if (subType === 1) {
         const a = getRandomInt(1, 4), b = getRandomInt(5, 9);
         const q = `${v}^4 ${fmtTerm(a + b, v+'^2')} ${fmtConst(a * b)}`;
@@ -419,7 +466,7 @@ export const problemGenerators = {
     // レベル8: 3次の公式
     level8: () => {
       const g = getRandGroup();
-      const v = g[0], subType = Math.random() > 0.5 ? 1 : 2, a = getRandomNonZeroInt(-3, 3);
+      const v = g[0], subType = levelQueues.level8.next(), a = getRandomNonZeroInt(-3, 3);
       if (subType === 1) { // (x+a)^3
         const q = `${v}^3${fmtTerm(3 * a, v+'^2')}${fmtTerm(3 * a * a, v)}${fmtConst(a * a * a)}`;
         const f = stringifyPoly({ [v]: 1, const: a }, [v]);
