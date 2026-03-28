@@ -184,7 +184,7 @@ function App() {
             onChange={(e) => changeLevel(parseInt(e.target.value))}
             style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
           >
-            {[...Array(10)].map((_, i) => (
+            {[...Array(11)].map((_, i) => (
               <option key={i + 1} value={i + 1} style={{ background: '#1a1a1e' }}>Level {i + 1}</option>
             ))}
           </select>
@@ -231,7 +231,7 @@ function App() {
           />
           {showSolution && (
             <div style={{ position: 'absolute', bottom: 10, right: 15, background: 'rgba(0,100,50,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid #00FF99', color: '#00FF99', fontWeight: 'bold', zIndex: 20 }}>
-              正解: {currentProblem.answer}
+              正解: <InlineMath math={currentProblem.answer} />
             </div>
           )}
         </section>
