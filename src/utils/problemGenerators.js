@@ -93,24 +93,50 @@ export const problemGenerators = {
     // レベル2: 中学公式 (x+a)(x+b), (x+a)^2, (x+a)(x-a)
     level2: () => {
       const g = getRandGroup();
-      const v = g[0];
+      const v1 = g[0];
+      const v2 = g[1];
+      const isHomogeneous = Math.random() > 0.5;
       const subType = getRandomInt(1, 3);
-      if (subType === 1) { // (x+a)(x+b)
+      
+      if (subType === 1) { // (x+a)(x+b) or (x+ay)(x+by)
         const a = getRandomNonZeroInt(-6, 6);
         let b = getRandomNonZeroInt(-6, 6);
         if (a === b) b += 1;
-        const q = `${v}^2${fmtTerm(a + b, v)}${fmtConst(a * b)}`;
-        const ans = `(${v}${fmtConst(a)})(${v}${fmtConst(b)})`;
+        
+        let q, ans;
+        if (isHomogeneous) {
+          // x^2 + (a+b)xy + aby^2
+          q = `${v1}^2${fmtTerm(a + b, v1 + v2)}${fmtTerm(a * b, v2 + '^2')}`;
+          ans = `(${v1}${fmtTerm(a, v2)})(${v1}${fmtTerm(b, v2)})`;
+        } else {
+          q = `${v1}^2${fmtTerm(a + b, v1)}${fmtConst(a * b)}`;
+          ans = `(${v1}${fmtConst(a)})(${v1}${fmtConst(b)})`;
+        }
         return { question: q, answer: ans };
-      } else if (subType === 2) { // (x+a)^2
+      } else if (subType === 2) { // (x+a)^2 or (x+ay)^2
         const a = getRandomNonZeroInt(-6, 6);
-        const q = `${v}^2${fmtTerm(2 * a, v)}${fmtConst(a * a)}`;
-        const ans = `(${v}${fmtConst(a)})^2`;
+        let q, ans;
+        if (isHomogeneous) {
+          // x^2 + 2axy + a^2y^2
+          q = `${v1}^2${fmtTerm(2 * a, v1 + v2)}${fmtTerm(a * a, v2 + '^2')}`;
+          ans = `(${v1}${fmtTerm(a, v2)})^2`;
+        } else {
+          q = `${v1}^2${fmtTerm(2 * a, v1)}${fmtConst(a * a)}`;
+          ans = `(${v1}${fmtConst(a)})^2`;
+        }
         return { question: q, answer: ans };
-      } else { // (x+a)(x-a)
+      } else { // (x+a)(x-a) or (x+ay)(x-ay)
         const a = getRandomInt(1, 10);
-        const q = `${v}^2-${a * a}`;
-        const ans = `(${v}-${a})(${v}+${a})`;
+        let q, ans;
+        if (isHomogeneous) {
+          // x^2 - a^2y^2
+          q = `${v1}^2${fmtTerm(-a * a, v2 + '^2')}`;
+          const aTerm = a === 1 ? "" : a;
+          ans = `(${v1}-${aTerm}${v2})(${v1}+${aTerm}${v2})`;
+        } else {
+          q = `${v1}^2-${a * a}`;
+          ans = `(${v1}-${a})(${v1}+${a})`;
+        }
         return { question: q, answer: ans };
       }
     },
