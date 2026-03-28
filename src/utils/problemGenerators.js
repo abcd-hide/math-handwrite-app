@@ -173,15 +173,143 @@ export const problemGenerators = {
     // レベル4: 文字の置き換え
     level4: () => {
       const g = getRandGroup();
-      const v1 = g[0];
-      const v2 = g[1];
-      const a = getRandomNonZeroInt(-4, 4);
-      const b = getRandomNonZeroInt(-4, 4);
-      // (x+y)^2 + (a+b)(x+y) + ab
-      const X = `(${v1}+${v2})`;
-      const q = `${X}^2${fmtTerm(a + b, X)}${fmtConst(a * b)}`;
-      const ans = `(${v1}+${v2}${fmtConst(a)})(${v1}+${v2}${fmtConst(b)})`;
-      return { question: q, answer: ans };
+      const v1 = g[0], v2 = g[1], v3 = g[2];
+      
+      const baseLevel = getRandomInt(1, 3);
+      const isBaseHomogeneous = Math.random() < 0.4;
+      
+      const makeTerm = (vars, useConst = true) => {
+        const a = getRandomNonZeroInt(-2, 2);
+        const b = Math.random() > 0.4 ? getRandomNonZeroInt(-2, 2) : 0;
+        const c = useConst && Math.random() > 0.5 ? getRandomNonZeroInt(-3, 3) : 0;
+        return { a, b, c, v1: vars[0], v2: vars[1] };
+      };
+
+      const fmtRepl = (t) => {
+        let res = fmtTerm(t.a, t.v1, true);
+        if (t.b !== 0) res += fmtTerm(t.b, t.v2);
+        if (t.c !== 0) res += fmtConst(t.c);
+        return `(${res})`;
+      };
+
+      const simplify = (cX, tX, cY, tY, k) => {
+        const coeffs = {};
+        const add = (c, t) => {
+          if (!t) return;
+          if (t.v1) coeffs[t.v1] = (coeffs[t.v1] || 0) + c * t.a;
+          if (t.v2) coeffs[t.v2] = (coeffs[t.v2] || 0) + c * t.b;
+        };
+        add(cX, tX);
+        if (cY) add(cY, tY);
+        
+        const constPart = cX * tX.c + (cY ? cY * tY.c : 0) + k;
+        
+        let res = "";
+        let first = true;
+        // 使用している変数をソートして順序を固定
+        const vars = Array.from(new Set([tX.v1, tX.v2, tY ? tY.v1 : null, tY ? tY.v2 : null])).filter(v => v);
+        vars.sort();
+        
+        vars.forEach(v => {
+          if (coeffs[v]) {
+            res += fmtTerm(coeffs[v], v, first);
+            first = false;
+          }
+        });
+        if (constPart !== 0 || res === "") {
+          res += fmtConst(constPart, first);
+        }
+        return res;
+      };
+
+      let termX = makeTerm([v1, v2]);
+      let X = fmtRepl(termX);
+      
+      let termY, Y;
+      if (isBaseHomogeneous) {
+        const hType = getRandomInt(1, 4); // 1:Only X replaced, 2:Only Y replaced, 3:Both, 4:Both with overlap
+        if (hType === 1) { // V1=X, V2=v3
+          termY = { a: 1, b: 0, c: 0, v1: v3, v2: null };
+          Y = v3;
+        } else if (hType === 2) { // V1=v3, V2=Y
+          termY = makeTerm([v1, v2]);
+          const tempX = termX; termX = { a: 1, b: 0, c: 0, v1: v3, v2: null };
+          termY = tempX;
+          X = v3; Y = fmtRepl(termY);
+        } else if (hType === 3) { // V1=X, V2=Y (separate vars)
+          termY = makeTerm([v3, g[3] || 'w']); 
+          Y = fmtRepl(termY);
+        } else { // V1=X, V2=Y (overlapping vars)
+          termY = makeTerm([v2, v3]);
+          Y = fmtRepl(termY);
+        }
+      }
+
+      if (baseLevel === 1) { // kX^2 + kAX or kX^2 + kXY
+        const k = getRandomNonZeroInt(-3, 3);
+        if (!isBaseHomogeneous) {
+          const a = getRandomNonZeroInt(-4, 4);
+          const q = `${fmtTerm(k, X+'^2', true)}${fmtTerm(k*a, X)}`;
+          const ans = `(${simplify(k, termX, null, null, 0)})(${simplify(1, termX, null, null, a)})`;
+          return { question: q, answer: ans };
+        } else {
+          const q = `${fmtTerm(k, X+'^2', true)}${fmtTerm(k, X+Y)}`;
+          const ans = `(${simplify(k, termX, null, null, 0)})(${simplify(1, termX, 1, termY, 0)})`;
+          return { question: q, answer: ans };
+        }
+      } else if (baseLevel === 2) {
+        const subType = getRandomInt(1, 3);
+        if (subType === 1) {
+          const a = getRandomNonZeroInt(-4, 4);
+          let b = getRandomNonZeroInt(-4, 4); if (a === b) b++;
+          if (!isBaseHomogeneous) {
+            const q = `${X}^2${fmtTerm(a+b, X)}${fmtConst(a*b)}`;
+            const ans = `(${simplify(1, termX, null, null, a)})(${simplify(1, termX, null, null, b)})`;
+            return { question: q, answer: ans };
+          } else {
+            const q = `${X}^2${fmtTerm(a+b, X+Y)}${fmtTerm(a*b, Y+'^2')}`;
+            const ans = `(${simplify(1, termX, a, termY, 0)})(${simplify(1, termX, b, termY, 0)})`;
+            return { question: q, answer: ans };
+          }
+        } else if (subType === 2) {
+          const a = getRandomNonZeroInt(-4, 4);
+          if (!isBaseHomogeneous) {
+            const q = `${X}^2${fmtTerm(2*a, X)}${fmtConst(a*a)}`;
+            const ans = `(${simplify(1, termX, null, null, a)})^2`;
+            return { question: q, answer: ans };
+          } else {
+            const q = `${X}^2${fmtTerm(2*a, X+Y)}${fmtTerm(a*a, Y+'^2')}`;
+            const ans = `(${simplify(1, termX, a, termY, 0)})^2`;
+            return { question: q, answer: ans };
+          }
+        } else {
+          const a = getRandomInt(1, 6);
+          if (!isBaseHomogeneous) {
+            const q = `${X}^2-${a*a}`;
+            const ans = `(${simplify(1, termX, null, null, -a)})(${simplify(1, termX, null, null, a)})`;
+            return { question: q, answer: ans };
+          } else {
+            const q = `${X}^2${fmtTerm(-a*a, Y+'^2')}`;
+            const ans = `(${simplify(1, termX, -a, termY, 0)})(${simplify(1, termX, a, termY, 0)})`;
+            return { question: q, answer: ans };
+          }
+        }
+      } else {
+        const a = getRandomNonZeroInt(-2, 2);
+        const c = getRandomNonZeroInt(-2, 2);
+        const b = getRandomNonZeroInt(-3, 3);
+        const d = getRandomNonZeroInt(-3, 3);
+        const c2 = a*c, c1 = a*d+b*c, c0 = b*d;
+        if (!isBaseHomogeneous) {
+          const q = `${fmtTerm(c2, X+'^2', true)}${fmtTerm(c1, X)}${fmtConst(c0)}`;
+          const ans = `(${simplify(a, termX, null, null, b)})(${simplify(c, termX, null, null, d)})`;
+          return { question: q, answer: ans };
+        } else {
+          const q = `${fmtTerm(c2, X+'^2', true)}${fmtTerm(c1, X+Y)}${fmtTerm(c0, Y+'^2')}`;
+          const ans = `(${simplify(a, termX, b, termY, 0)})(${simplify(c, termX, d, termY, 0)})`;
+          return { question: q, answer: ans };
+        }
+      }
     },
 
     // レベル5: 3次の公式
