@@ -178,10 +178,24 @@ export const problemGenerators = {
       const baseLevel = getRandomInt(1, 3);
       const isBaseHomogeneous = Math.random() < 0.4;
       
+      const gcd = (a, b) => {
+        a = Math.abs(a); b = Math.abs(b);
+        while (b) { a %= b; [a, b] = [b, a]; }
+        return a;
+      };
+      const gcd3 = (a, b, c) => gcd(a, gcd(b, c));
+
       const makeTerm = (vars, useConst = true) => {
-        const a = getRandomNonZeroInt(-2, 2);
-        const b = Math.random() > 0.4 ? getRandomNonZeroInt(-2, 2) : 0;
-        const c = useConst && Math.random() > 0.5 ? getRandomNonZeroInt(-3, 3) : 0;
+        let a, b, c;
+        while (true) {
+          a = getRandomNonZeroInt(-2, 2);
+          b = Math.random() > 0.4 ? getRandomNonZeroInt(-2, 2) : 0;
+          c = useConst && Math.random() > 0.5 ? getRandomNonZeroInt(-3, 3) : 0;
+          const count = (a !== 0 ? 1 : 0) + (b !== 0 ? 1 : 0) + (c !== 0 ? 1 : 0);
+          if (count < 2) continue; // 単項式を排除
+          if (gcd3(a, b, c) !== 1) continue; // 定数がくくれるものを排除
+          break;
+        }
         return { a, b, c, v1: vars[0], v2: vars[1] };
       };
 
