@@ -95,7 +95,7 @@ export const problemGenerators = {
       const g = getRandGroup();
       const v1 = g[0];
       const v2 = g[1];
-      const isHomogeneous = Math.random() > 0.5;
+      const isHomogeneous = Math.random() < 0.4;
       const subType = getRandomInt(1, 3);
       
       if (subType === 1) { // (x+a)(x+b) or (x+ay)(x+by)
