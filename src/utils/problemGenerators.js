@@ -326,8 +326,36 @@ export const problemGenerators = {
       }
     },
 
-    // レベル5: 3次の公式
+    // レベル5: 最低次数について整理 (旧レベル7)
     level5: () => {
+      const g = getRandGroup();
+      const v1 = g[0], v2 = g[1];
+      const a = getRandomNonZeroInt(-3, 3);
+      const q = `${v1}^2 + ${v1}${v2} ${fmtTerm(a - 1, v1)} - ${v2} ${fmtConst(-a)}`;
+      const ans = `(${v1}-1)(${v1}+${v2}${fmtConst(a)})`;
+      return { question: q, answer: ans };
+    },
+
+    // レベル6: 複2次式 (旧レベル9)
+    level6: () => {
+      const g = getRandGroup();
+      const v = g[0];
+      const subType = Math.random() > 0.5 ? 1 : 2;
+      if (subType === 1) { // (x^2+a)(x^2+b)
+        const a = getRandomInt(1, 4);
+        const b = getRandomInt(5, 9);
+        const q = `${v}^4 ${fmtTerm(a + b, v+'^2')} ${fmtConst(a * b)}`;
+        const ans = `(${v}^2+${a})(${v}^2+${b})`;
+        return { question: q, answer: ans };
+      } else { // x^4 + x^2 + 1 = (x^2+x+1)(x^2-x+1)
+        const q = `${v}^4 + ${v}^2 + 1`;
+        const ans = `(${v}^2+${v}+1)(${v}^2-${v}+1)`;
+        return { question: q, answer: ans };
+      }
+    },
+
+    // レベル7: 3次の公式 (旧レベル5)
+    level7: () => {
       const g = getRandGroup();
       const v = g[0];
       const subType = Math.random() > 0.5 ? 1 : 2;
@@ -346,8 +374,8 @@ export const problemGenerators = {
       }
     },
 
-    // レベル6: 因数定理
-    level6: () => {
+    // レベル8: 因数定理 (旧レベル6)
+    level8: () => {
       const g = getRandGroup();
       const v = g[0];
       const r = getRandomNonZeroInt(-3, 3);
@@ -362,42 +390,14 @@ export const problemGenerators = {
       return { question: q, answer: ans };
     },
 
-    // レベル7: 最低次数について整理
-    level7: () => {
-      const g = getRandGroup();
-      const v1 = g[0], v2 = g[1];
-      const a = getRandomNonZeroInt(-3, 3);
-      const q = `${v1}^2 + ${v1}${v2} ${fmtTerm(a - 1, v1)} - ${v2} ${fmtConst(-a)}`;
-      const ans = `(${v1}-1)(${v1}+${v2}${fmtConst(a)})`;
-      return { question: q, answer: ans };
-    },
-
-    // レベル8: 2元2次6項
-    level8: () => {
+    // レベル9: 2元2次6項 (旧レベル8)
+    level9: () => {
       const g = getRandGroup();
       const v1 = g[0], v2 = g[1];
       // (x+y+1)(x+2y+1) = x^2 + 3xy + 2y^2 + 2x + 3y + 1
       const q = `${v1}^2 + 3${v1}${v2} + 2${v2}^2 + 2${v1} + 3${v2} + 1`;
       const ans = `(${v1}+${v2}+1)(${v1}+2${v2}+1)`;
       return { question: q, answer: ans };
-    },
-
-    // レベル9: 複2次式
-    level9: () => {
-      const g = getRandGroup();
-      const v = g[0];
-      const subType = Math.random() > 0.5 ? 1 : 2;
-      if (subType === 1) { // (x^2+a)(x^2+b)
-        const a = getRandomInt(1, 4);
-        const b = getRandomInt(5, 9);
-        const q = `${v}^4 ${fmtTerm(a + b, v+'^2')} ${fmtConst(a * b)}`;
-        const ans = `(${v}^2+${a})(${v}^2+${b})`;
-        return { question: q, answer: ans };
-      } else { // x^4 + x^2 + 1 = (x^2+x+1)(x^2-x+1)
-        const q = `${v}^4 + ${v}^2 + 1`;
-        const ans = `(${v}^2+${v}+1)(${v}^2-${v}+1)`;
-        return { question: q, answer: ans };
-      }
     },
 
     // レベル10: 3変数対称式・交代式
