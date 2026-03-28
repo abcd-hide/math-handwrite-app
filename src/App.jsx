@@ -168,7 +168,7 @@ function App() {
   return (
     <div className="app-container">
       <header>
-        <div className="logo">MathHandwrite Pro</div>
+        <div className="logo">MathHandwrite Pro <span style={{ fontSize: '10px', verticalAlign: 'middle', opacity: 0.5 }}>v1.1</span></div>
         <div className="toolbar">
            <button className={`tool-btn ${tool === 'pen' ? 'active' : ''}`} onClick={() => setTool('pen')} title="ペン"><Pen size={20} /></button>
            <button className={`tool-btn ${tool === 'eraser' ? 'active' : ''}`} onClick={() => setTool('eraser')} title="消しゴム"><Eraser size={20} /></button>
@@ -184,8 +184,8 @@ function App() {
             onChange={(e) => changeLevel(parseInt(e.target.value))}
             style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
           >
-            {[...Array(11)].map((_, i) => (
-              <option key={i + 1} value={i + 1} style={{ background: '#1a1a1e' }}>Level {i + 1}</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((lvl) => (
+              <option key={lvl} value={lvl} style={{ background: '#1a1a1e' }}>Level {lvl}</option>
             ))}
           </select>
         </div>
