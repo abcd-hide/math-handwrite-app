@@ -127,7 +127,7 @@ function App() {
     const correct = currentProblem.check(answerInput);
     setIsCorrect(correct);
     if (correct) {
-      setScore(s => s + 10);
+      setScore(s => s + 1);
     }
   };
 
