@@ -234,8 +234,8 @@ export const problemGenerators = {
         c = getRandomNonZeroInt(-3, 3); d = getRandomNonZeroInt(-5, 5);
         if (a*c !== 0 && (a !== c || b !== d)) break;
       }
-      const q = isHomogeneous ? `${fmtTerm(a * c, v + '^2')} ${fmtTerm(a * d + b * c, v + v2)} ${fmtTerm(b * d, v2 + '^2')}`
-                              : `${fmtTerm(a * c, v + '^2')} ${fmtTerm(a * d + b * c, v)} ${fmtConst(b * d)}`;
+      const q = isHomogeneous ? `${fmtTerm(a * c, v + '^2', true)} ${fmtTerm(a * d + b * c, v + v2)} ${fmtTerm(b * d, v2 + '^2')}`
+                              : `${fmtTerm(a * c, v + '^2', true)} ${fmtTerm(a * d + b * c, v)} ${fmtConst(b * d)}`;
       const f1 = isHomogeneous ? stringifyPoly({ [v]: a, [v2]: b }, [v, v2]) : stringifyPoly({ [v]: a, const: b }, [v]);
       const f2 = isHomogeneous ? stringifyPoly({ [v]: c, [v2]: d }, [v, v2]) : stringifyPoly({ [v]: c, const: d }, [v]);
       return { question: q, answer: formatFactors([f1, f2]) };
@@ -266,7 +266,7 @@ export const problemGenerators = {
         const k = getRandomNonZeroInt(-3, 3);
         const a = getRandomNonZeroInt(-4, 4);
         const b = getRandomNonZeroInt(-4, 4);
-        const q = `${fmtTerm(k, `(${X.str})^2`)}${fmtTerm(k*(a+b), `(${X.str})`)}${fmtConst(k*a*b)}`;
+        const q = `${fmtTerm(k, `(${X.str})^2`, true)}${fmtTerm(k*(a+b), `(${X.str})`)}${fmtConst(k*a*b)}`;
         const f1 = stringifyPoly({ [v1]: X.a, [v2]: X.b, const: a }, [v1, v2]);
         const f2 = stringifyPoly({ [v1]: X.a, [v2]: X.b, const: b }, [v1, v2]);
         return { question: q, answer: formatFactors([f1, f2], k === 1 ? "" : (k === -1 ? "-" : k)) };
@@ -294,7 +294,7 @@ export const problemGenerators = {
       } else { //たすきがけ
         const a=getRandomNonZeroInt(-2, 2), b=getRandomNonZeroInt(-3, 3);
         const c=getRandomNonZeroInt(-2, 2), d=getRandomNonZeroInt(-3, 3);
-        const q = `${fmtTerm(a*c, `(${X.str})^2`)}${fmtTerm(a*d+b*c, `(${X.str})`)}${fmtConst(b*d)}`;
+        const q = `${fmtTerm(a*c, `(${X.str})^2`, true)}${fmtTerm(a*d+b*c, `(${X.str})`)}${fmtConst(b*d)}`;
         const f1 = stringifyPoly({ [v1]: a*X.a, [v2]: a*X.b, const: b }, [v1, v2]);
         const f2 = stringifyPoly({ [v1]: c*X.a, [v2]: c*X.b, const: d }, [v1, v2]);
         return { question: q, answer: formatFactors([f1, f2]) };
