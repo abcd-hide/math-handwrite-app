@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trash2, CheckCircle2, XCircle, Trophy, Settings, PenTool, Eraser, Pen, Eye, ChevronRight, Play, LayoutList, RotateCcw } from 'lucide-react';
+import { Trash2, CheckCircle2, XCircle, Trophy, Settings, PenTool, Eraser, Pen, Eye, ChevronRight, Play, LayoutList, RotateCcw, Circle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as math from 'mathjs';
 import { InlineMath } from 'react-katex';
@@ -355,6 +355,7 @@ function App() {
         </header>
         <div className="modal" style={{ margin: '40px auto', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Trophy size={60} color="#FFD700" style={{ marginBottom: '10px' }} />
+          <h2 style={{ color: 'var(--text-secondary)', margin: '0 0 10px 0' }}>Level {level}</h2>
           <h1 style={{ fontSize: '32px', margin: '10px 0' }}>今回のスコア: {score} 点</h1>
           
           <h2 style={{ marginTop: '30px', alignSelf: 'flex-start', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px', width: '100%' }}>トップ10 ランキング</h2>
@@ -481,10 +482,17 @@ function App() {
           {/* 1 second O/X feedback overlay for Test Mode inside answer area */}
           <AnimatePresence>
             {testFeedback && (
-              <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} 
-                style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 50, pointerEvents: 'none', background: 'rgba(0,0,0,0.4)', borderRadius: '50%', padding: '20px' }}>
-                {testFeedback === 'correct' ? <CheckCircle2 size={100} color="var(--success-color)" /> : <XCircle size={100} color="var(--error-color)" />}
-              </motion.div>
+              <>
+                <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} 
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, pointerEvents: 'none' }}>
+                  {testFeedback === 'correct' ? <Circle style={{ height: '80%', aspectRatio: '1/1' }} color="var(--success-color)" strokeWidth={1.5} /> : <X style={{ height: '80%', aspectRatio: '1/1' }} color="var(--error-color)" strokeWidth={1.5} />}
+                </motion.div>
+                {testFeedback === 'incorrect' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', bottom: '10px', right: '15px', background: 'rgba(0,0,0,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid var(--error-color)', color: 'white', fontWeight: 'bold', zIndex: 51, pointerEvents: 'none' }}>
+                    正解: <InlineMath math={currentProblem.answer} />
+                  </motion.div>
+                )}
+              </>
             )}
           </AnimatePresence>
         </section>
