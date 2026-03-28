@@ -294,3 +294,20 @@ header {
 canvas.ms-canvas {
   background-color: transparent !important;
 }
+
+/* New CSS additions for menu and rankings */
+.highlight-rank {
+  border: 2px solid var(--accent-color) !important;
+  background: rgba(144, 202, 249, 0.1) !important;
+}
+
+.menu-card {
+  background: rgba(30, 30, 35, 0.8);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  margin: auto;
+  text-align: center;
+  backdrop-filter: blur(20px);
+}
