@@ -144,17 +144,29 @@ export const problemGenerators = {
     // レベル3: たすきがけ
     level3: () => {
       const g = getRandGroup();
-      const v = g[0];
-      const a = getRandomInt(1, 3);
-      const c = getRandomInt(2, 4);
-      const b = getRandomNonZeroInt(-5, 5);
-      const d = getRandomNonZeroInt(-5, 5);
+      const v1 = g[0];
+      const v2 = g[1];
+      const isHomogeneous = Math.random() < 0.4;
+      
+      const a = getRandomNonZeroInt(-4, 4);
+      const c = getRandomNonZeroInt(-4, 4);
+      const b = getRandomNonZeroInt(-6, 6);
+      const d = getRandomNonZeroInt(-6, 6);
+      
       // (ax+b)(cx+d) = ac x^2 + (ad+bc)x + bd
+      // (ax+by)(cx+dy) = ac x^2 + (ad+bc)xy + bd y^2
       const coeff2 = a * c;
       const coeff1 = a * d + b * c;
       const coeff0 = b * d;
-      const q = `${fmtTerm(coeff2, v+'^2', true)}${fmtTerm(coeff1, v)}${fmtConst(coeff0)}`;
-      const ans = `(${fmtCoeff(a, true)}${v}${fmtConst(b)})(${fmtCoeff(c, true)}${v}${fmtConst(d)})`;
+      
+      let q, ans;
+      if (isHomogeneous) {
+        q = `${fmtTerm(coeff2, v1+'^2', true)}${fmtTerm(coeff1, v1+v2)}${fmtTerm(coeff0, v2+'^2')}`;
+        ans = `(${fmtTerm(a, v1, true)}${fmtTerm(b, v2)})(${fmtTerm(c, v1, true)}${fmtTerm(d, v2)})`;
+      } else {
+        q = `${fmtTerm(coeff2, v1+'^2', true)}${fmtTerm(coeff1, v1)}${fmtConst(coeff0)}`;
+        ans = `(${fmtTerm(a, v1, true)}${fmtConst(b)})(${fmtTerm(c, v1, true)}${fmtConst(d)})`;
+      }
       return { question: q, answer: ans };
     },
 
