@@ -336,8 +336,50 @@ export const problemGenerators = {
       return { question: q, answer: ans };
     },
 
-    // レベル6: 複2次式 (旧レベル9)
+    // レベル6: 高度な組み合わせ・多段因数分解 (新設)
     level6: () => {
+      const g = getRandGroup();
+      const v = g[0];
+      const type = getRandomInt(1, 6);
+      
+      if (type === 1) { // 組み換えによる平方の差: x^2 + 2ax + a^2 - y^2
+        const v2 = g[1];
+        const a = getRandomNonZeroInt(-4, 4);
+        const q = `${v}^2 ${fmtTerm(2*a, v)} ${fmtConst(a*a)} - ${v2}^2`;
+        const ans = `(${v}${fmtConst(a)}+${v2})(${v}${fmtConst(a)}-${v2})`;
+        return { question: q, answer: ans };
+      } else if (type === 2) { // 共通因数と置き換えの複合 (ユーザー例示参考)
+        const v2 = g[1], v3 = g[2];
+        const k = getRandomNonZeroInt(2, 3);
+        // k*c * ((a-b)^2 + 2(a-b)*2c + (2c)^2) = k*c * (a-b+2c)^2
+        const q = `${k}${v3}${v[0]}^2 - ${2*k}${v3}${v[0]}${v2} + ${k}${v3}${v2}^2 + ${4*k}(${v[0]}-${v2})${v3}^2 + ${4*k}${v3}^3`;
+        const ans = `${k}${v3}(${v[0]}-${v2}+2${v3})^2`;
+        return { question: q, answer: ans };
+      } else if (type === 3) { // (x+a)(x+b)(x+c)(x+d)+k (a+b=c+d)
+        // (x+1)(x+2)(x+3)(x+4)-48 -> (x^2+5x+4)(x^2+5x+6)-48
+        const a=1, b=4, c=2, d=3, k=-48;
+        const q = `(${v}+1)(${v}+2)(${v}+3)(${v}+4)${k}`;
+        const ans = `(${v}^2+5${v}+12)(${v}^2+5${v}-2)`;
+        return { question: q, answer: ans };
+      } else if (type === 4) { // (x+a)(x+b)(x+c)(x+d)+kx^2 (ac=bd)
+        // (x-1)(x-2)(x+2)(x+4)+2x^2
+        const q = `(${v}-1)(${v}-2)(${v}+2)(${v}+4)+2${v}^2`;
+        const ans = `(${v}^2+${v}-4)(${v}^2+2${v}-4)`;
+        return { question: q, answer: ans };
+      } else if (type === 5) { // 多段置き換え: (x^2+x)^2 - 8(x^2+x) + 12
+        const q = `(${v}^2+${v})^2 - 8(${v}^2+${v}) + 12`;
+        const ans = `(${v}+3)(${v}-2)(${v}+2)(${v}-1)`;
+        return { question: q, answer: ans };
+      } else { // 共通因数くくり出し後の多段分解
+        // x(x+1)^2 + 2(x+1)(2x+1)... (修正版)
+        const q = `${v}^2(${v}+1)^2 + 2${v}(${v}+1)(2${v}+1) + 4${v}(${v}+1)`;
+        const ans = `${v}(${v}+1)(${v}+2)(${v}+3)`;
+        return { question: q, answer: ans };
+      }
+    },
+
+    // レベル7: 複2次式 (旧レベル6)
+    level7: () => {
       const g = getRandGroup();
       const v = g[0];
       const subType = Math.random() > 0.5 ? 1 : 2;
@@ -354,8 +396,8 @@ export const problemGenerators = {
       }
     },
 
-    // レベル7: 3次の公式 (旧レベル5)
-    level7: () => {
+    // レベル8: 3次の公式 (旧レベル7)
+    level8: () => {
       const g = getRandGroup();
       const v = g[0];
       const subType = Math.random() > 0.5 ? 1 : 2;
@@ -374,8 +416,8 @@ export const problemGenerators = {
       }
     },
 
-    // レベル8: 因数定理 (旧レベル6)
-    level8: () => {
+    // レベル9: 因数定理 (旧レベル8)
+    level9: () => {
       const g = getRandGroup();
       const v = g[0];
       const r = getRandomNonZeroInt(-3, 3);
@@ -390,8 +432,8 @@ export const problemGenerators = {
       return { question: q, answer: ans };
     },
 
-    // レベル9: 2元2次6項 (旧レベル8)
-    level9: () => {
+    // レベル10: 2元2次6項 (旧レベル9)
+    level10: () => {
       const g = getRandGroup();
       const v1 = g[0], v2 = g[1];
       // (x+y+1)(x+2y+1) = x^2 + 3xy + 2y^2 + 2x + 3y + 1
@@ -400,8 +442,8 @@ export const problemGenerators = {
       return { question: q, answer: ans };
     },
 
-    // レベル10: 3変数対称式・交代式
-    level10: () => {
+    // レベル11: 3変数対称式・交代式 (旧レベル10)
+    level11: () => {
       const g = getRandGroup();
       const a = g[0], b = g[1], c = g[2];
       const q = `${a}^2(${b}-${c}) + ${b}^2(${c}-${a}) + ${c}^2(${a}-${b})`;
