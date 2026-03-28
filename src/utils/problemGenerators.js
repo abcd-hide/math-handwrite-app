@@ -34,7 +34,7 @@ const variableGroups = [
   ['a', 'b', 'c'],
   ['p', 'q', 'r'],
   ['s', 't', 'u'],
-  ['i', 'j', 'k']
+  ['m', 'n', 'k']
 ];
 
 const getRandGroup = () => variableGroups[getRandomInt(0, variableGroups.length - 1)];
