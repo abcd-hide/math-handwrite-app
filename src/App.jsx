@@ -14,8 +14,8 @@ const cleanMath = (latex) => {
   if (!latex) return "";
   let s = latex;
 
-  // Handle \frac{a}{b} -> ((a)/(b)) with optional spaces
-  s = s.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '(($1)/($2))');
+  // Handle \frac{a}{b} -> ((a)/(b)) with optional spaces and ONE LEVEL of nested braces
+  s = s.replace(/\\frac\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
   
   // Handle power notation with braces ^{n} -> ^(n)
   s = s.replace(/\^\{([^}]*)\}/g, '^($1)');
