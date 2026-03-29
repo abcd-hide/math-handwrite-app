@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, CheckCircle2, XCircle, Trophy, Settings, PenTool, Eraser, Pen, Eye, ChevronRight, Play, LayoutList, RotateCcw, Circle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as math from 'mathjs';
-import { InlineMath } from 'react-katex';
+import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import MathCanvas from './components/MathCanvas';
 import './index.css';
@@ -12,10 +12,23 @@ import { generateProblem } from './utils/problemGenerators';
 const cleanMath = (latex) => {
   if (!latex) return "";
   let s = latex;
+
+  // Handle \frac{a}{b} -> ((a)/(b))
+  s = s.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '(($1)/($2))');
+  
+  // Handle power notation with braces ^{n} -> ^(n)
+  s = s.replace(/\^\{([^}]*)\}/g, '^($1)');
+
+  // LaTeX symbols to mathjs
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
+  s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); // simple log support
+  
+  // Braces to parens (after \frac and ^ are handled)
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
+  
   s = s.replace(/\\ /g, ''); // Remove latex spaces
+  s = s.replace(/\\/g, ''); // Remove remaining backslashes
   s = s.replace(/\s+/g, ''); // Remove all other spaces
   
   // Implicit multiplication: 2x -> 2*x, xy -> x*y, x( -> x*(, etc.
@@ -34,8 +47,7 @@ const cleanLatexForDisplay = (latex) => {
   let s = latex;
   // Remove MyScript specific artifacts that often break KaTeX rendering
   s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
-  s = s.replace(/\\left/g, '').replace(/\\right/g, ''); 
-  s = s.replace(/\\text\{([^}]*)\}/g, '$1');
+  // Skip stripping of \left( and \right) as they are needed for nice display  s = s.replace(/\\text\{([^}]*)\}/g, '$1');
   s = s.replace(/\\ /g, ' ');
   return s;
 };
@@ -457,7 +469,7 @@ function App() {
       <main className="problem-card">
         <div className="problem-label">{currentProblem.type}</div>
         <div className="problem-text">
-           <InlineMath math={currentProblem.question} />
+           <BlockMath math={currentProblem.question} />
         </div>
       </main>
 
