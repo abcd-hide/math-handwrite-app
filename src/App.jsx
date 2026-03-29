@@ -55,8 +55,8 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
     
     // Variables encountered: x,y,z, a,b,c, p,q,r, s,t,u, i,j,k, m,n
     const testPoints = [
-      { x: 1.5, y: 2.7, z: 0.8, a: 0.5, b: 1.2, c: -0.8, p: 0.4, q: -1.2, r: 0.9, s: 1.1, t: -0.5, u: 0.3, i: 1.4, j: -0.2, k: 0.6, m: 0.7, n: 1.3 },
-      { x: -2.1, y: 0.3, z: -1.5, a: 1.5, b: -2.4, c: 3.1, p: -0.7, q: 0.5, r: -1.1, s: 0.2, t: 1.4, u: -0.9, i: -0.3, j: 0.8, k: -1.2, m: -0.5, n: 0.8 }
+      { x: 1.5, y: 2.7, z: 0.8, a: -2.3, b: 1.2, c: -0.8, p: 0.4, q: -1.2, r: 0.9, s: 1.1, t: -0.5, u: 0.3, i: 2, j: 3, k: 3, m: 4, n: 5 },
+      { x: -2.1, y: 0.3, z: -1.5, a: 1.5, b: -2.4, c: 3.1, p: -0.7, q: 0.5, r: -1.1, s: 0.2, t: 1.4, u: -0.9, i: 4, j: 2, k: 5, m: 3, n: 6 }
     ];
     
     return testPoints.every(scope => {
@@ -301,13 +301,29 @@ function App() {
         <div className="menu-card modal">
           <h2>モード選択</h2>
           <div style={{ margin: '20px 0', textAlign: 'left' }}>
+            <label style={{ display: 'block', marginBottom: '8px', opacity: 0.7 }}>ジャンルを選択:</label>
+            <select 
+              value={category} 
+              onChange={(e) => {
+                const newCat = e.target.value;
+                setCategory(newCat);
+                if (newCat === 'sequence_sum' && level > 8) {
+                  setLevel(1);
+                }
+              }}
+              style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', borderRadius: '8px', fontSize: '16px', marginBottom: '15px' }}
+            >
+              <option value="factorization" style={{ background: '#1a1a1e' }}>因数分解</option>
+              <option value="sequence_sum" style={{ background: '#1a1a1e' }}>数列の和</option>
+            </select>
+
             <label style={{ display: 'block', marginBottom: '8px', opacity: 0.7 }}>挑戦するレベルを選択:</label>
             <select 
               value={level} 
               onChange={(e) => setLevel(parseInt(e.target.value))}
               style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', borderRadius: '8px', fontSize: '16px' }}
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lvl) => (
+              {(category === 'sequence_sum' ? [1, 2, 3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).map((lvl) => (
                 <option key={lvl} value={lvl} style={{ background: '#1a1a1e' }}>Level {lvl}</option>
               ))}
             </select>
@@ -424,7 +440,7 @@ function App() {
               onChange={(e) => changeLevel(parseInt(e.target.value))}
               style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lvl) => (
+              {(category === 'sequence_sum' ? [1, 2, 3, 4, 5, 6, 7, 8] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).map((lvl) => (
                 <option key={lvl} value={lvl} style={{ background: '#1a1a1e' }}>Level {lvl}</option>
               ))}
             </select>

@@ -1,6 +1,8 @@
 /**
- * 因数分解の問題生成ロジック
+ * 因数分解・数列の和の問題生成ロジック
  */
+
+import { sequenceSumGenerators } from './sequenceSumGenerators';
 
 const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const getRandomNonZeroInt = (min, max) => {
@@ -961,7 +963,8 @@ export const problemGenerators = {
         return { question: qStr, answer: formatFactors([i1, i2, i3, i4], '-') };
       }
     }
-  }
+  },
+  sequence_sum: sequenceSumGenerators
 };
 
 export const generateProblem = (category, level) => {
@@ -969,7 +972,7 @@ export const generateProblem = (category, level) => {
   if (problemGenerators[category] && problemGenerators[category][levelKey]) {
     const prob = problemGenerators[category][levelKey]();
     return {
-      type: '因数分解せよ',
+      type: category === 'sequence_sum' ? '和を求めよ' : '因数分解せよ',
       category,
       level,
       ...prob
