@@ -132,7 +132,7 @@ const levelQueues = {
   level5: new PatternQueue([0, 1, 2, 3, 4, 5, 6, 7]),
   level6: new PatternQueue([1, 2, 3, 4, 5, 6]),
   level7: new PatternQueue([1, 2]),
-  level8: new PatternQueue([1, 2])
+  level8: new PatternQueue([1, 2, 3, 4, 5, 6])
 };
 
 export const problemGenerators = {
@@ -417,15 +417,26 @@ export const problemGenerators = {
         const f = stringifyPoly({ [v[0]]: 1, [v2]: -1, [v3]: a }, [v[0], v2, v3]);
         return { question: q, answer: formatFactors([f, f], `${k}${v3}`) };
       } else if (type === 3) { // (x+a)(x+b)(x+c)(x+d)+k (a+b=c+d)
-        let a, b, c, d; while(true) { a = getRandomInt(-4, 4); b = getRandomInt(-4, 4); c = getRandomInt(-4, 4); d = a + b - c; if (new Set([a, b, c, d]).size >= 3 && Math.abs(d) <= 6) break; }
-        const ab = a * b, cd = c * d, S = a + b, offset = getRandomNonZeroInt(-3, 3), resM = ab + offset, resN = cd - offset, k = resM * resN - ab * cd;
+        let a, b, c, d, ab, cd, S, offset, resM, resN, k;
+        while(true) {
+          a = getRandomInt(-4, 4); b = getRandomInt(-4, 4); c = getRandomInt(-4, 4); d = a + b - c;
+          if (new Set([a, b, c, d]).size >= 3 && Math.abs(d) <= 6) {
+            ab = a * b; cd = c * d; S = a + b; offset = getRandomNonZeroInt(-3, 3); resM = ab + offset; resN = cd - offset; k = resM * resN - ab * cd;
+            if (k !== 0) break;
+          }
+        }
         const q = `(${v}${fmtConst(a)})(${v}${fmtConst(b)})(${v}${fmtConst(c)})(${v}${fmtConst(d)})${fmtConst(k)}`;
         const f1 = stringifyPoly({ [`${v}^2`]: 1, [v]: S, const: resM }, [`${v}^2`, v]);
         const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: S, const: resN }, [`${v}^2`, v]);
         return { question: q, answer: formatFactors([f1, f2]) };
       } else if (type === 4) { // (x+a)(x+b)(x+c)(x+d)+kx^2 (ac=bd)
         const pairs = [[-1, 4, -2, 2], [-1, -4, -2, -2], [1, 4, 2, 2], [1, -4, -2, 2], [-2, 3, -1, 6]];
-        const p = pairs[getRandomInt(0, pairs.length - 1)], a=p[0], c=p[1], b=p[2], d=p[3], P=a*c, s1 = a + c, s2 = b + d, offset = getRandomNonZeroInt(-2, 2), resM = s1 + offset, resN = s2 - offset, k = resM * resN - s1 * s2;
+        let a, c, b, d, P, s1, s2, offset, resM, resN, k;
+        while(true) {
+          const p = pairs[getRandomInt(0, pairs.length - 1)];
+          a=p[0]; c=p[1]; b=p[2]; d=p[3]; P=a*c; s1 = a + c; s2 = b + d; offset = getRandomNonZeroInt(-2, 2); resM = s1 + offset; resN = s2 - offset; k = resM * resN - s1 * s2;
+          if (k !== 0) break;
+        }
         const q = `(${v}${fmtConst(a)})(${v}${fmtConst(c)})(${v}${fmtConst(b)})(${v}${fmtConst(d)})${fmtTerm(k, v+'^2')}`;
         const f1 = stringifyPoly({ [`${v}^2`]: 1, [v]: resM, const: P }, [`${v}^2`, v]);
         const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: resN, const: P }, [`${v}^2`, v]);
@@ -451,14 +462,32 @@ export const problemGenerators = {
     level7: () => {
       const g = getRandGroup();
       const v = g[0], subType = levelQueues.level7.next();
+      
+      const getFactors = (vStr, c) => {
+        if (c < 0 && Math.sqrt(-c) % 1 === 0) {
+          const r = Math.sqrt(-c);
+          return [stringifyPoly({ [vStr]: 1, const: r }, [vStr]), stringifyPoly({ [vStr]: 1, const: -r }, [vStr])];
+        }
+        return [stringifyPoly({ [`${vStr}^2`]: 1, const: c }, [`${vStr}^2`])];
+      };
+
       if (subType === 1) {
-        const a = getRandomInt(1, 4), b = getRandomInt(5, 9);
+        const a = getRandomNonZeroInt(-9, 9), b = getRandomNonZeroInt(-9, 9);
         const q = `${v}^4 ${fmtTerm(a + b, v+'^2')} ${fmtConst(a * b)}`;
-        const f1 = `${v}^2+${a}`, f2 = `${v}^2+${b}`;
-        return { question: q, answer: formatFactors([f1, f2]) };
+        const factors = [...getFactors(v, a), ...getFactors(v, b)];
+        return { question: q, answer: formatFactors(factors) };
       } else {
-        const q = `${v}^4 + ${v}^2 + 1`;
-        const f1 = `${v}^2+${v}+1`, f2 = `${v}^2-${v}+1`;
+        let a, c;
+        while (true) {
+          a = getRandomInt(1, 5);
+          c = getRandomNonZeroInt(-6, 6);
+          if (a * a - 4 * c >= 0 && Math.sqrt(a * a - 4 * c) % 1 === 0) continue;
+          break;
+        }
+        const mid = 2 * c - a * a;
+        const q = `${v}^4 ${fmtTerm(mid, v+'^2')} ${fmtConst(c * c)}`;
+        const f1 = stringifyPoly({ [`${v}^2`]: 1, [v]: a, const: c }, [`${v}^2`, v]);
+        const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: -a, const: c }, [`${v}^2`, v]);
         return { question: q, answer: formatFactors([f1, f2]) };
       }
     },
@@ -466,41 +495,251 @@ export const problemGenerators = {
     // レベル8: 3次の公式
     level8: () => {
       const g = getRandGroup();
-      const v = g[0], subType = levelQueues.level8.next(), a = getRandomNonZeroInt(-3, 3);
-      if (subType === 1) { // (x+a)^3
-        const q = `${v}^3${fmtTerm(3 * a, v+'^2')}${fmtTerm(3 * a * a, v)}${fmtConst(a * a * a)}`;
-        const f = stringifyPoly({ [v]: 1, const: a }, [v]);
-        return { question: q, answer: `(${f})^3` };
-      } else { // x^3 + a^3 = (x+a)(x^2-ax+a^2)
-        const q = `${v}^3${fmtConst(a * a * a)}`;
-        const f1 = stringifyPoly({ [v]: 1, const: a }, [v]);
-        const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: -a, const: a * a }, [`${v}^2`, v]);
-        return { question: q, answer: formatFactors([f1, f2]) };
+      const v = g[0], v2 = g[1];
+      const subType = levelQueues.level8.next(); 
+      const isHomo = Math.random() < 0.5;
+
+      let p = getRandomInt(1, 3);
+      if (Math.random() < 0.6) p = 1; // 係数1になりやすくする
+      let q = getRandomNonZeroInt(-4, 4);
+
+      if (subType === 1 || subType === 2) {
+        // (px + qy)^3
+        const p3 = p * p * p;
+        const p2q = 3 * p * p * q;
+        const pq2 = 3 * p * q * q;
+        const q3 = q * q * q;
+        const qStr = isHomo ? 
+          `${fmtTerm(p3, v+'^3', true)} ${fmtTerm(p2q, v+'^2'+v2)} ${fmtTerm(pq2, v+v2+'^2')} ${fmtTerm(q3, v2+'^3')}` :
+          `${fmtTerm(p3, v+'^3', true)} ${fmtTerm(p2q, v+'^2')} ${fmtTerm(pq2, v)} ${fmtConst(q3)}`;
+        const f = isHomo ? stringifyPoly({ [v]: p, [v2]: q }, [v, v2]) : stringifyPoly({ [v]: p, const: q }, [v]);
+        return { question: qStr, answer: formatFactors([f, f, f]) };
+      } else if (subType === 3 || subType === 4) {
+        // (px)^3 + (qy)^3 = (px+qy)(p^2 x^2 - pq xy + q^2 y^2)
+        const p3 = p * p * p;
+        const q3 = q * q * q;
+        const qStr = isHomo ? 
+          `${fmtTerm(p3, v+'^3', true)} ${fmtTerm(q3, v2+'^3')}` :
+          `${fmtTerm(p3, v+'^3', true)} ${fmtConst(q3)}`;
+        const f1 = isHomo ? stringifyPoly({ [v]: p, [v2]: q }, [v, v2]) : stringifyPoly({ [v]: p, const: q }, [v]);
+        const f2 = isHomo ? stringifyPoly({ [`${v}^2`]: p*p, [v+v2]: -p*q, [`${v2}^2`]: q*q }, [`${v}^2`, v+v2, `${v2}^2`]) :
+                            stringifyPoly({ [`${v}^2`]: p*p, [v]: -p*q, const: q*q }, [`${v}^2`, v]);
+        return { question: qStr, answer: formatFactors([f1, f2]) };
+      } else if (subType === 5) {
+        // 紛らわしいパターン1: x^2(px+qy) - r^2 y^2(px+qy) = (px+qy)(x+ry)(x-ry)
+        p = 1; 
+        let r = getRandomInt(1, 4);
+        if (Math.abs(q) === r) q = (q > 0 ? r + 1 : -(r + 1)); 
+        const t1 = p, t2 = q, t3 = -p * r * r, t4 = -q * r * r;
+        const qStr = isHomo ? 
+          `${fmtTerm(t1, v+'^3', true)} ${fmtTerm(t2, v+'^2'+v2)} ${fmtTerm(t3, v+v2+'^2')} ${fmtTerm(t4, v2+'^3')}` :
+          `${fmtTerm(t1, v+'^3', true)} ${fmtTerm(t2, v+'^2')} ${fmtTerm(t3, v)} ${fmtConst(t4)}`;
+        
+        const f1 = isHomo ? stringifyPoly({ [v]: p, [v2]: q }, [v, v2]) : stringifyPoly({ [v]: p, const: q }, [v]);
+        const f2 = isHomo ? stringifyPoly({ [v]: 1, [v2]: r }, [v, v2]) : stringifyPoly({ [v]: 1, const: r }, [v]);
+        const f3 = isHomo ? stringifyPoly({ [v]: 1, [v2]: -r }, [v, v2]) : stringifyPoly({ [v]: 1, const: -r }, [v]);
+        return { question: qStr, answer: formatFactors([f1, f2, f3]) };
+      } else {
+        // 紛らわしいパターン2: (px+qy)^2(px-qy)
+        const t1 = p * p * p;
+        const t2 = p * p * q;
+        const t3 = -p * q * q;
+        const t4 = -q * q * q;
+        const qStr = isHomo ? 
+          `${fmtTerm(t1, v+'^3', true)} ${fmtTerm(t2, v+'^2'+v2)} ${fmtTerm(t3, v+v2+'^2')} ${fmtTerm(t4, v2+'^3')}` :
+          `${fmtTerm(t1, v+'^3', true)} ${fmtTerm(t2, v+'^2')} ${fmtTerm(t3, v)} ${fmtConst(t4)}`;
+        
+        const f1 = isHomo ? stringifyPoly({ [v]: p, [v2]: q }, [v, v2]) : stringifyPoly({ [v]: p, const: q }, [v]);
+        const f2 = isHomo ? stringifyPoly({ [v]: p, [v2]: -q }, [v, v2]) : stringifyPoly({ [v]: p, const: -q }, [v]);
+        return { question: qStr, answer: formatFactors([f1, f1, f2]) };
       }
     },
 
     // レベル9: 因数定理
     level9: () => {
       const g = getRandGroup();
-      const v = g[0], r = getRandomNonZeroInt(-3, 3), b = getRandomInt(-3, 3), c = getRandomNonZeroInt(-4, 4);
-      const q = `${v}^3${fmtTerm(b - r, v+'^2')}${fmtTerm(c - r * b, v)}${fmtConst(-r * c)}`;
-      const f1 = stringifyPoly({ [v]: 1, const: -r }, [v]);
-      const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: b, const: c }, [`${v}^2`, v]);
-      return { question: q, answer: formatFactors([f1, f2]) };
+      const v = g[0];
+      const isDegree4 = Math.random() < 0.4;
+      
+      const getLinear = () => {
+        let p = getRandomInt(1, 3);
+        if (Math.random() < 0.6) p = 1;
+        let r = getRandomNonZeroInt(-3, 3);
+        return { p, r, str: stringifyPoly({ [v]: p, const: -r }, [v]) };
+      };
+
+      const getIrredQuad = () => {
+        let A, B, C;
+        while (true) {
+          A = getRandomInt(1, 3);
+          if (Math.random() < 0.7) A = 1;
+          B = getRandomInt(-3, 3);
+          C = getRandomNonZeroInt(-4, 4);
+          const disc = B * B - 4 * A * C;
+          if (disc >= 0 && Math.sqrt(disc) % 1 === 0) continue;
+          break;
+        }
+        return { A, B, C, str: stringifyPoly({ [`${v}^2`]: A, [v]: B, const: C }, [`${v}^2`, v]) };
+      };
+
+      const L1 = getLinear();
+      const Q = getIrredQuad();
+
+      if (!isDegree4) {
+        // 3次式: (p x - r)(A x^2 + B x + C)
+        const c3 = L1.p * Q.A;
+        const c2 = L1.p * Q.B - L1.r * Q.A;
+        const c1 = L1.p * Q.C - L1.r * Q.B;
+        const c0 = -L1.r * Q.C;
+        const q = `${fmtTerm(c3, v+'^3', true)} ${fmtTerm(c2, v+'^2')} ${fmtTerm(c1, v)} ${fmtConst(c0)}`;
+        return { question: q, answer: formatFactors([L1.str, Q.str]) };
+      } else {
+        // 4次式: (p x - r)(q x - s)(A x^2 + B x + C)
+        const L2 = getLinear();
+        const E = L1.p * L2.p;
+        const F = -L1.p * L2.r - L1.r * L2.p;
+        const G = L1.r * L2.r;
+        
+        const c4 = E * Q.A;
+        const c3 = E * Q.B + F * Q.A;
+        const c2 = E * Q.C + F * Q.B + G * Q.A;
+        const c1 = F * Q.C + G * Q.B;
+        const c0 = G * Q.C;
+        
+        const q = `${fmtTerm(c4, v+'^4', true)} ${fmtTerm(c3, v+'^3')} ${fmtTerm(c2, v+'^2')} ${fmtTerm(c1, v)} ${fmtConst(c0)}`;
+        return { question: q, answer: formatFactors([L1.str, L2.str, Q.str]) };
+      }
     },
 
-    // レベル10: 2元2次6項
+    // レベル10: 2元2次6項 (ax+by+c)(dx+ey+f) ランダム係数
     level10: () => {
       const g = getRandGroup();
       const v1 = g[0], v2 = g[1];
-      const q = `${v1}^2 + 3${v1}${v2} + 2${v2}^2 + 2${v1} + 3${v2} + 1`;
-      const f1 = stringifyPoly({ [v1]: 1, [v2]: 1, const: 1 }, [v1, v2]);
-      const f2 = stringifyPoly({ [v1]: 1, [v2]: 2, const: 1 }, [v1, v2]);
+
+      const randCoeff = () => getRandomNonZeroInt(-5, 5);
+
+      const tryGenerate = () => {
+        const isMonic = Math.random() < 0.5;
+        let a, d;
+        if (isMonic) {
+          a = 1; d = 1;
+        } else {
+          do { a = randCoeff(); d = randCoeff(); } while (Math.abs(a) === 1 && Math.abs(d) === 1);
+        }
+        
+        // 残り4係数をランダムに生成。全体で±1が2個以上になるよう保証
+        let b, c, e, f;
+        let attempts = 0;
+        while (true) {
+          b = randCoeff(); c = randCoeff(); e = randCoeff(); f = randCoeff();
+          const unitCount = [a, b, c, d, e, f].filter(x => Math.abs(x) === 1).length;
+          if (unitCount >= 2) break;
+          if (++attempts > 200) break;
+        }
+        return { a, b, c, d, e, f };
+      };
+
+      const { a, b, c, d, e, f } = tryGenerate();
+
+      // 展開: (ax+by+c)(dx+ey+f)
+      // = ad x^2 + (ae+bd) xy + be y^2 + (af+cd) x + (bf+ce) y + cf
+      const coef_x2  = a * d;
+      const coef_xy  = a * e + b * d;
+      const coef_y2  = b * e;
+      const coef_x   = a * f + c * d;
+      const coef_y   = b * f + c * e;
+      const coef_c   = c * f;
+
+      const termStr = (coef, term, isFirst = false) =>
+        coef === 0 ? '' : (term ? fmtTerm(coef, term, isFirst) : fmtConst(coef, isFirst));
+
+      let q = '';
+      const terms = [
+        [coef_x2,  `${v1}^2`],
+        [coef_xy,  v1 + v2],
+        [coef_y2,  `${v2}^2`],
+        [coef_x,   v1],
+        [coef_y,   v2],
+        [coef_c,   ''],
+      ];
+      let isFirst = true;
+      for (const [coef, term] of terms) {
+        if (coef === 0) continue;
+        q += ' ' + termStr(coef, term || null, isFirst);
+        isFirst = false;
+      }
+      q = q.trim();
+
+      const f1 = stringifyPoly({ [v1]: a, [v2]: b, const: c }, [v1, v2]);
+      const f2 = stringifyPoly({ [v1]: d, [v2]: e, const: f }, [v1, v2]);
       return { question: q, answer: formatFactors([f1, f2]) };
     },
 
-    // レベル11: 3変数対称式・交代式
+    // レベル11: (ax)^3+(by)^3+(cz)^3-3abcxyz 型の恒等式
     level11: () => {
+      const g = getRandGroup();
+      const [x, y, z] = g;
+
+      // 係数 a,b,c は {-2,-1,1,2} からランダム、ただし少なくとも1つは ±1 かつ少なくとも1つは1
+      const pickCoeffs = () => {
+        const pool = [-2, -1, 1, 2];
+        let a, b, c;
+        while (true) {
+          a = pool[getRandomInt(0, 3)];
+          b = pool[getRandomInt(0, 3)];
+          c = pool[getRandomInt(0, 3)];
+          const hasOne = [a, b, c].some(v => v === 1);
+          if (hasOne) return [a, b, c];
+        }
+      };
+
+      const type = getRandomInt(1, 4);
+      const [a, b, c] = pickCoeffs();
+
+      if (type === 1) {
+        // 基本パターン: (ax)^3 + (by)^3 + (cz)^3 - 3abcxyz
+        // = (ax + by + cz)(a^2x^2 + b^2y^2 + c^2z^2 - abxy - bcyz - acxz)
+        const t1 = a*a*a, t2 = b*b*b, t3 = c*c*c, t4 = -3*a*b*c;
+        const q = `${fmtTerm(t1, x+'^3', true)} ${fmtTerm(t2, y+'^3')} ${fmtTerm(t3, z+'^3')} ${fmtTerm(t4, x+y+z)}`;
+        const lin = stringifyPoly({ [x]: a, [y]: b, [z]: c }, [x, y, z]);
+        const quad = stringifyPoly({ [`${x}^2`]: a*a, [`${y}^2`]: b*b, [`${z}^2`]: c*c, [x+y]: -a*b, [y+z]: -b*c, [x+z]: -a*c }, [`${x}^2`, `${y}^2`, `${z}^2`, x+y, y+z, x+z]);
+        return { question: q, answer: formatFactors([lin, quad]) };
+
+      } else if (type === 2) {
+        // x^3+y^3+3axy-a^3 = (x+y-a)((x-y)^2+a(x+y)+a^2) パターン
+        const aVal = a;
+        const t3xy = 3 * aVal;
+        const tConst = -aVal * aVal * aVal;
+        const q = `${x}^3 ${fmtTerm(1, y+'^3')} ${fmtTerm(t3xy, x+y)} ${fmtConst(tConst)}`;
+        const lin3 = stringifyPoly({ [x]: 1, [y]: 1, const: -aVal }, [x, y]);
+        const quad3 = stringifyPoly({ [`${x}^2`]: 1, [x+y]: -2, [`${y}^2`]: 1, [x]: aVal, [y]: aVal, const: aVal*aVal }, [`${x}^2`, x+y, `${y}^2`, x, y]);
+        return { question: q, answer: formatFactors([lin3, quad3]) };
+
+      } else if (type === 3) {
+        // (ax-by)^3+(by-cz)^3+(cz-ax)^3 = 3(ax-by)(by-cz)(cz-ax) パターン
+        const A2 = `${fmtTerm(a, x, true)}${fmtTerm(-b, y)}`;
+        const B2 = `${fmtTerm(b, y, true)}${fmtTerm(-c, z)}`;
+        const C2 = `${fmtTerm(c, z, true)}${fmtTerm(-a, x)}`;
+        const q = `(${A2})^3 + (${B2})^3 + (${C2})^3`;
+        const f1 = stringifyPoly({ [x]: a, [y]: -b }, [x, y]);
+        const f2 = stringifyPoly({ [y]: b, [z]: -c }, [y, z]);
+        const f3 = stringifyPoly({ [z]: c, [x]: -a }, [z, x]);
+        return { question: q, answer: formatFactors([f1, f2, f3], '3') };
+
+      } else {
+        // (ax)^3+(by)^3+(cz)^3-3abcxyz の係数違いで、1変数に係数をかけたパターン
+        // patterned: one factor is negative → sign flip
+        const at = a, bt = -b, ct = c;
+        const t1b = at*at*at, t2b = bt*bt*bt, t3b = ct*ct*ct, t4b = -3*at*bt*ct;
+        const q = `${fmtTerm(t1b, x+'^3', true)} ${fmtTerm(t2b, y+'^3')} ${fmtTerm(t3b, z+'^3')} ${fmtTerm(t4b, x+y+z)}`;
+        const linB = stringifyPoly({ [x]: at, [y]: bt, [z]: ct }, [x, y, z]);
+        const quadB = stringifyPoly({ [`${x}^2`]: at*at, [`${y}^2`]: bt*bt, [`${z}^2`]: ct*ct, [x+y]: -at*bt, [y+z]: -bt*ct, [x+z]: -at*ct }, [`${x}^2`, `${y}^2`, `${z}^2`, x+y, y+z, x+z]);
+        return { question: q, answer: formatFactors([linB, quadB]) };
+      }
+    },
+
+    // レベル12: 3変数対称式・交代式
+    level12: () => {
       const g = getRandGroup();
       const a = g[0], b = g[1], c = g[2];
       const q = `${a}^2(${b}-${c}) + ${b}^2(${c}-${a}) + ${c}^2(${a}-${b})`;
