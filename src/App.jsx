@@ -14,8 +14,8 @@ const cleanMath = (latex) => {
   if (!latex) return "";
   let s = latex;
 
-  // Handle \frac{a}{b} -> ((a)/(b))
-  s = s.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '(($1)/($2))');
+  // Handle \frac{a}{b} -> ((a)/(b)) with optional spaces
+  s = s.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '(($1)/($2))');
   
   // Handle power notation with braces ^{n} -> ^(n)
   s = s.replace(/\^\{([^}]*)\}/g, '^($1)');
@@ -25,7 +25,7 @@ const cleanMath = (latex) => {
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
   s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); // simple log support
   
-  // Braces/Brackets to parens (after \frac and ^ are handled)
+  // Braces/Brackets to parens
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
   s = s.replace(/\[/g, '(').replace(/\]/g, ')');
   
@@ -33,11 +33,16 @@ const cleanMath = (latex) => {
   s = s.replace(/\\/g, ''); // Remove remaining backslashes
   s = s.replace(/\s+/g, ''); // Remove all other spaces
   
-  // Implicit multiplication: 2x -> 2*x, xy -> x*y, x( -> x*(, etc.
+  // Implicit multiplication: 
+  // 1. Digit/Variable before Parenthesis: 2( -> 2*(, n( -> n*(
+  s = s.replace(/([0-9a-z])(\()/gi, '$1*$2');
+  // 2. Parenthesis before Digit/Variable: )2 -> )*2, )n -> )*n
+  s = s.replace(/(\))([0-9a-z])/gi, '$1*$2');
+  // 3. Digit before Variable: 2n -> 2*n
   s = s.replace(/(\d)([a-z])/gi, '$1*$2');
+  // 4. Variable before Variable: xy -> x*y
   s = s.replace(/([a-z])(?=[a-z])/gi, '$1*');
-  s = s.replace(/([a-z])(\()/gi, '$1*$2');
-  s = s.replace(/(\))([a-z0-9])/gi, '$1*$2');
+  // 5. Parenthesis before Parenthesis: )( -> )*(
   s = s.replace(/\)\(/g, ')*(');
   
   return s;
