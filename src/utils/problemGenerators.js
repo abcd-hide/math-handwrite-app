@@ -911,10 +911,18 @@ export const problemGenerators = {
       } else if (type === 6) {
         // (ax+by+cz)^3-(ax)^3-(by)^3-(cz)^3 = 3(ax+by)(by+cz)(cz+ax)
         const [a, b, c] = pickCoeffs3();
-        const ax = fmtTerm(a, x, true) || x;
-        const by = fmtTerm(b, y, true) || y;
-        const cz = fmtTerm(c, z, true) || z;
-        const qStr = `(${ax}+${by}+${cz})^3-(${ax})^3-(${by})^3-(${cz})^3`;
+        
+        // (ax+by+cz) の部分: stringifyPoly を使うことで符号を適切に処理
+        const innerSum = stringifyPoly({ [x]: a, [y]: b, [z]: c }, [x, y, z]);
+        
+        // (ax)^3 等の部分: 係数の絶対値が 1 の場合は括弧を外す
+        const fmtCubicTerm = (coeff, variable) => {
+          if (coeff === 1) return `${variable}^3`;
+          if (coeff === -1) return `(-${variable})^3`;
+          return `(${fmtTerm(coeff, variable, true)})^3`;
+        };
+
+        const qStr = `(${innerSum})^3-${fmtCubicTerm(a, x)}-${fmtCubicTerm(b, y)}-${fmtCubicTerm(c, z)}`;
         const h1 = stringifyPoly({ [x]: a, [y]: b }, [x, y]);
         const h2 = stringifyPoly({ [y]: b, [z]: c }, [y, z]);
         const h3 = stringifyPoly({ [z]: c, [x]: a }, [z, x]);
