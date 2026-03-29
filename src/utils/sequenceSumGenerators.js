@@ -16,10 +16,9 @@ const getUpperLimit = () => {
 
 const texSigma = (exprTex, upperTex) => String.raw`\sum_{k=1}^{${upperTex}} ${exprTex}`;
 
-// LaTeX formatter helpers
 const wrapMath = (expr) => {
   const s = String(expr);
-  if (s.includes('\\left\\{') || s.includes('{')) return String.raw`\left[ ${s} \right]`;
+  if (s.includes('\\left\\{') || s.includes('\\{')) return String.raw`\left[ ${s} \right]`;
   if (s.includes('\\left(') || s.includes('(')) return String.raw`\left\{ ${s} \right\}`;
   return String.raw`\left( ${s} \right)`;
 };

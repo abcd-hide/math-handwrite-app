@@ -25,8 +25,9 @@ const cleanMath = (latex) => {
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
   s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); // simple log support
   
-  // Braces to parens (after \frac and ^ are handled)
+  // Braces/Brackets to parens (after \frac and ^ are handled)
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
+  s = s.replace(/\[/g, '(').replace(/\]/g, ')');
   
   s = s.replace(/\\ /g, ''); // Remove latex spaces
   s = s.replace(/\\/g, ''); // Remove remaining backslashes
