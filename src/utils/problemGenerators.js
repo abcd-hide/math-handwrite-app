@@ -15,6 +15,23 @@ const gcd = (a, b) => {
   return b === 0 ? a : gcd(b, a % b);
 };
 
+// 符号の正規化処理 (例: +- -> -, -- -> +)
+const normalizeSign = (str) => {
+  if (!str) return "";
+  let res = str;
+  // 重複符号の置換
+  res = res.replace(/\+\+/g, "+");
+  res = res.replace(/\+-/g, "-");
+  res = res.replace(/- \+/g, "-"); // スペースあり対応
+  res = res.replace(/-\+/g, "-");
+  res = res.replace(/--/g, "+");
+  // 括弧内の先頭が + の場合は除去
+  res = res.replace(/\(\+/g, "(");
+  // 文頭の + の除去 (stringifyPolyなどで行っているが念のため)
+  if (res.startsWith("+")) res = res.substring(1);
+  return res;
+};
+
 // 定数項の処理
 const fmtConst = (n, first = false) => {
   if (n === 0 || n === undefined) return "";
@@ -33,7 +50,7 @@ const fmtCoeff = (n, first = false) => {
 
 const fmtTerm = (coeff, term, first = false) => {
   if (coeff === 0 || coeff === undefined) return "";
-  return `${fmtCoeff(coeff, first)}${term}`;
+  return normalizeSign(`${fmtCoeff(coeff, first)}${term}`);
 };
 
 /**
@@ -938,7 +955,7 @@ export const problemGenerators = {
         const by3 = fmtTerm(b*b*b, y+'^3', true);
         const ax_f = fmtTerm(a, x, true);
         const cz3 = fmtTerm(c*c*c, z+'^3', true);
-        const qStr = `${ax3}(${by3_f}-${cz_f})+${by3}(${cz_f}-${ax_f})+${cz3}(${ax_f}-${by3_f})`;
+        const qStr = normalizeSign(`${ax3}(${by3_f}-${cz_f})+${by3}(${cz_f}-${ax_f})+${cz3}(${ax_f}-${by3_f})`);
         const i1 = stringifyPoly({ [x]: a, [y]: -b }, [x, y]);
         const i2 = stringifyPoly({ [y]: b, [z]: -c }, [y, z]);
         const i3 = stringifyPoly({ [z]: c, [x]: -a }, [z, x]);
