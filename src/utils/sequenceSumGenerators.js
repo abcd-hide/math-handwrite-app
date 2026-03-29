@@ -32,8 +32,15 @@ const fmtFrac = (num, den) => {
 const fmtPolyFactor = (expr) => `\\left(${expr}\\right)`;
 
 export const sequenceSumGenerators = {
-  // レベル1: 等差数列・等比数列の和
+  // レベル1: 等差数列・等比数列の和 (Fixed for testing)
   level1: () => {
+    // 完全に固定したテスト問題
+    // \sum_{k=1}^n 2\cdot (-2)^k
+    return {
+      question: "\\sum_{k=1}^n 2\\cdot (-2)^k",
+      answer: "-\\frac{4}{3}\\left((-2)^n - 1\\right)"
+    };
+    /* 
     const isArithmetic = Math.random() < 0.5;
     const N = getUpperLimit();
     const n = N.expr;
@@ -88,6 +95,7 @@ export const sequenceSumGenerators = {
       const ans = `${coeff === '1' ? '' : (coeff === '-1' ? '-' : coeff)}\\left( ${aMath}^{${n}} - 1 \\right)`;
       return { question: q, answer: ans };
     }
+    */
   },
 
   // レベル2: 多項式、積の形、立方、連続整数積
