@@ -267,7 +267,7 @@ export const sequenceSumGenerators = {
     const r = Math.random() < 0.5 ? 2 : 3;
     const q = texSigma(`k \\cdot ${r}^{k}`, N.tex);
     const den = (1 - r) * (1 - r);
-    const ans = `\\frac{${r} - \\left( ${n}+1 \\right) ${r}^{${n}+1} + ${n} ${r}^{${n}+2}}{${den}}`;
+    const ans = `\\frac{${r} - \\left( ${n}+1 \\right) ${r}^{${n}+1} + ${n} \\cdot ${r}^{${n}+2}}{${den}}`;
     return { question: q, answer: ans };
   },
 
