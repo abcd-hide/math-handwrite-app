@@ -87,7 +87,7 @@ const variableGroups = [
   ['a', 'b', 'c'],
   ['p', 'q', 'r'],
   ['s', 't', 'u'],
-  ['m', 'n', 'k']
+  ['k', 'm', 'n']
 ];
 
 const getRandGroup = () => variableGroups[getRandomInt(0, variableGroups.length - 1)];
@@ -425,12 +425,13 @@ export const problemGenerators = {
             if (k !== 0) break;
           }
         }
-        // 重複値を2乗表記へ変換するヘルパー
+        // 重複値を2乗表記、0値は括弧なしで表示するヘルパー
         const fmtLinearFactors = (vals) => {
           const counts = {};
-          vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+          vals.forEach(val => { counts[val] = (counts[val] || 0) + 1; });
           return Object.entries(counts).map(([val, cnt]) => {
-            const s = `(${v}${fmtConst(Number(val))})`;
+            const n = Number(val);
+            const s = n === 0 ? v : `(${v}${fmtConst(n)})`;
             return cnt === 1 ? s : `${s}^${cnt}`;
           }).join('');
         };
@@ -448,9 +449,10 @@ export const problemGenerators = {
         }
         const fmtLinearFactors4 = (vals) => {
           const counts = {};
-          vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+          vals.forEach(val => { counts[val] = (counts[val] || 0) + 1; });
           return Object.entries(counts).map(([val, cnt]) => {
-            const s = `(${v}${fmtConst(Number(val))})`;
+            const n = Number(val);
+            const s = n === 0 ? v : `(${v}${fmtConst(n)})`;
             return cnt === 1 ? s : `${s}^${cnt}`;
           }).join('');
         };
@@ -490,7 +492,22 @@ export const problemGenerators = {
       };
 
       if (subType === 1) {
-        const a = getRandomNonZeroInt(-9, 9), b = getRandomNonZeroInt(-9, 9);
+        // 80%の確率で少なくとも1つを負の平方数にする
+        const useNegSquare = Math.random() < 0.8;
+        let a, b;
+        if (useNegSquare) {
+          const ra = getRandomInt(1, 4);
+          a = -(ra * ra);
+          // bはランダム（正負問わず）
+          b = getRandomNonZeroInt(-9, 9);
+          if (Math.random() < 0.4) {
+            const rb = getRandomInt(1, 4);
+            b = -(rb * rb);
+          }
+        } else {
+          a = getRandomNonZeroInt(-9, 9);
+          b = getRandomNonZeroInt(-9, 9);
+        }
         const q = `${v}^4 ${fmtTerm(a + b, v+'^2')} ${fmtConst(a * b)}`;
         const factors = [...getFactors(v, a), ...getFactors(v, b)];
         return { question: q, answer: formatFactors(factors) };
@@ -791,15 +808,135 @@ export const problemGenerators = {
       }
     },
 
-    // レベル12: 3変数対称式・交代式
+    // レベル12: 3変数高度対称式・交代式 (7パターン)
     level12: () => {
       const g = getRandGroup();
-      const a = g[0], b = g[1], c = g[2];
-      const q = `${a}^2(${b}-${c}) + ${b}^2(${c}-${a}) + ${c}^2(${a}-${b})`;
-      const f1 = stringifyPoly({ [a]: 1, [b]: -1 }, [a, b]);
-      const f2 = stringifyPoly({ [b]: 1, [c]: -1 }, [b, c]);
-      const f3 = stringifyPoly({ [c]: 1, [a]: -1 }, [c, a]);
-      return { question: q, answer: formatFactors([f1, f2, f3], "-") };
+      const [x, y, z] = g;
+
+      // 係数生成: 少なくとも1つは1、±2は最大1つ
+      const pickCoeffs3 = () => {
+        while (true) {
+          const pool12 = [-1, 1];
+          const pool2 = [-2, -1, 1, 2];
+          // まず全部を±1から
+          let a = pool12[getRandomInt(0, 1)];
+          let b = pool12[getRandomInt(0, 1)];
+          let c = pool12[getRandomInt(0, 1)];
+          // 30%で1つだけ±2に置換
+          if (Math.random() < 0.3) {
+            const idx = getRandomInt(0, 2);
+            const sign = Math.random() < 0.5 ? 2 : -2;
+            if (idx === 0) a = sign;
+            else if (idx === 1) b = sign;
+            else c = sign;
+          }
+          // 少なくとも1つが1
+          if ([a, b, c].some(v => v === 1)) return [a, b, c];
+        }
+      };
+
+      const type = getRandomInt(1, 7);
+
+      if (type === 1) {
+        // (ax+1)(by+1)(cz+1) = abc·xyz + ab·xy + ac·xz + bc·yz + a·x + b·y + c·z + 1
+        const [a, b, c] = pickCoeffs3();
+        const coefXyz = a * b * c, coefXy = a * b, coefXz = a * c, coefYz = b * c;
+        // 問題文の展開
+        const terms = [
+          [coefXyz, x+y+z], [coefXy, x+y], [coefXz, x+z], [coefYz, y+z],
+          [a, x], [b, y], [c, z]
+        ];
+        let q = '';
+        let first = true;
+        for (const [coef, term] of terms) {
+          if (coef === 0) continue;
+          q += ' ' + fmtTerm(coef, term, first);
+          first = false;
+        }
+        q += fmtConst(1, false);
+        const f1 = stringifyPoly({ [x]: a, const: 1 }, [x]);
+        const f2 = stringifyPoly({ [y]: b, const: 1 }, [y]);
+        const f3 = stringifyPoly({ [z]: c, const: 1 }, [z]);
+        return { question: q.trim(), answer: formatFactors([f1, f2, f3]) };
+
+      } else if (type === 2) {
+        // a^2(b-c)+b^2(c-a)+c^2(a-b) = -(a-b)(b-c)(c-a) [旧level12]
+        const q = `${x}^2(${y}-${z}) + ${y}^2(${z}-${x}) + ${z}^2(${x}-${y})`;
+        const f1 = stringifyPoly({ [x]: 1, [y]: -1 }, [x, y]);
+        const f2 = stringifyPoly({ [y]: 1, [z]: -1 }, [y, z]);
+        const f3 = stringifyPoly({ [z]: 1, [x]: -1 }, [z, x]);
+        return { question: q, answer: formatFactors([f1, f2, f3], "-") };
+
+      } else if (type === 3) {
+        // (x+y+z)(xy+yz+zx) - xyz = (x+y)(y+z)(z+x)
+        // 係数: (ax+by)(by+cz)(cz+ax) 形で展開
+        const [a, b, c] = pickCoeffs3();
+        // (ax+by+cz)(abxy+bcyz+acxz) - abcxyz を展開
+        // 答えは (ax+by)(by+cz)(cz+ax)
+        // 問題文は展開形: LHS = answered by showing (ax+by+cz)(abxy+bcyz+acxz)-abcxyz
+        // 実際に展開: 
+        //  (ax+by)(by+cz)(cz+ax)
+        //  = (ab y^2 + acz y + b^2 xy + bcxz)(??? 複雑なので直接展開)
+        // 直接展開 (ax+by)(by+cz)(cz+ax):
+        const ab = a*b, bc = b*c, ca = c*a, abc = a*b*c;
+        // 展開結果: ab·by·? ... 
+        // (ax+by)(by+cz) = ab*xy + ac*xz + b^2*y^2 + bc*yz
+        // × (cz+ax):
+        // = abc*xyz + a^2b*x^2y + a^2c*x^2z + a^2b* - 複雑すぎる
+        // パターン3のシンプル版: 係数を使わず x,y,z で出題
+        const qStr = `(${x}+${y}+${z})(${x}${y}+${y}${z}+${z}${x})-${x}${y}${z}`;
+        const g1 = stringifyPoly({ [x]: 1, [y]: 1 }, [x, y]);
+        const g2 = stringifyPoly({ [y]: 1, [z]: 1 }, [y, z]);
+        const g3 = stringifyPoly({ [z]: 1, [x]: 1 }, [z, x]);
+        return { question: qStr, answer: formatFactors([g1, g2, g3]) };
+
+      } else if (type === 4) {
+        // (x+y)(y+z)(z+x)+xyz = (x+y+z)(xy+yz+zx)
+        const qStr = `(${x}+${y})(${y}+${z})(${z}+${x})+${x}${y}${z}`;
+        const s12 = stringifyPoly({ [x]: 1, [y]: 1, [z]: 1 }, [x, y, z]);
+        // 答えの2次式 xy+yz+zx は stringifyPoly では整形難しいのでリテラル表記
+        const s22 = `${x}${y}+${y}${z}+${z}${x}`;
+        return { question: qStr, answer: `(${s12})(${s22})` };
+
+      } else if (type === 5) {
+        // x^4+y^4+z^4-2x^2y^2-2y^2z^2-2z^2x^2
+        // = (x+y+z)(x+y-z)(x-y+z)(-x+y+z)
+        const qStr = `${x}^4+${y}^4+${z}^4-2${x}^2${y}^2-2${y}^2${z}^2-2${z}^2${x}^2`;
+        const e1 = stringifyPoly({ [x]: 1, [y]: 1, [z]: 1 }, [x, y, z]);
+        const e2 = stringifyPoly({ [x]: 1, [y]: 1, [z]: -1 }, [x, y, z]);
+        const e3 = stringifyPoly({ [x]: 1, [y]: -1, [z]: 1 }, [x, y, z]);
+        const e4 = stringifyPoly({ [x]: -1, [y]: 1, [z]: 1 }, [x, y, z]);
+        return { question: qStr, answer: formatFactors([e1, e2, e3, e4]) };
+
+      } else if (type === 6) {
+        // (ax+by+cz)^3-(ax)^3-(by)^3-(cz)^3 = 3(ax+by)(by+cz)(cz+ax)
+        const [a, b, c] = pickCoeffs3();
+        const ax = fmtTerm(a, x, true) || x;
+        const by = fmtTerm(b, y, true) || y;
+        const cz = fmtTerm(c, z, true) || z;
+        const qStr = `(${ax}+${by}+${cz})^3-(${ax})^3-(${by})^3-(${cz})^3`;
+        const h1 = stringifyPoly({ [x]: a, [y]: b }, [x, y]);
+        const h2 = stringifyPoly({ [y]: b, [z]: c }, [y, z]);
+        const h3 = stringifyPoly({ [z]: c, [x]: a }, [z, x]);
+        return { question: qStr, answer: formatFactors([h1, h2, h3], '3') };
+
+      } else {
+        // x^3(y-z)+y^3(z-x)+z^3(x-y) = -(x-y)(y-z)(z-x)(x+y+z)
+        // 一般化: (ax)^3(by-cz)+(by)^3(cz-ax)+(cz)^3(ax-by)
+        const [a, b, c] = pickCoeffs3();
+        const ax3 = fmtTerm(a*a*a, x+'^3', true);
+        const by3_f = fmtTerm(b, y, true);
+        const cz_f = fmtTerm(c, z, true);
+        const by3 = fmtTerm(b*b*b, y+'^3', true);
+        const ax_f = fmtTerm(a, x, true);
+        const cz3 = fmtTerm(c*c*c, z+'^3', true);
+        const qStr = `${ax3}(${by3_f}-${cz_f})+${by3}(${cz_f}-${ax_f})+${cz3}(${ax_f}-${by3_f})`;
+        const i1 = stringifyPoly({ [x]: a, [y]: -b }, [x, y]);
+        const i2 = stringifyPoly({ [y]: b, [z]: -c }, [y, z]);
+        const i3 = stringifyPoly({ [z]: c, [x]: -a }, [z, x]);
+        const i4 = stringifyPoly({ [x]: a, [y]: b, [z]: c }, [x, y, z]);
+        return { question: qStr, answer: formatFactors([i1, i2, i3, i4], '-') };
+      }
     }
   }
 };
