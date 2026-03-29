@@ -14,35 +14,37 @@ const cleanMath = (latex) => {
   if (!latex) return "";
   let s = latex;
 
-  // Handle \frac{a}{b} -> ((a)/(b)) with optional spaces and ONE LEVEL of nested braces
+  // 1. Remove LaTeX specific non-visible delimiter dots (e.g., \left. \right.)
+  s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
+
+  // 2. Handle \frac{a}{b} -> ((a)/(b)) with optional spaces and ONE LEVEL of nested braces
   s = s.replace(/\\frac\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
   
-  // Handle power notation with braces ^{n} -> ^(n)
+  // 3. Handle power notation with braces ^{n} -> ^(n)
   s = s.replace(/\^\{([^}]*)\}/g, '^($1)');
 
-  // LaTeX symbols to mathjs
+  // 4. Normalize ALL bracket types to parentheses (handles \left\{, \{, [, etc.)
+  // First remove the LaTeX command parts but keep the actual bracket characters
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
-  s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
-  s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); // simple log support
-  
-  // Braces/Brackets to parens
+  // Then replace all brace and bracket variations with parentheses
+  s = s.replace(/\\\{/g, '(').replace(/\\\}/g, ')'); 
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
   s = s.replace(/\[/g, '(').replace(/\]/g, ')');
+
+  // 5. LaTeX symbols to mathjs
+  s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
+  s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); 
   
+  // 6. Final cleanup of LaTeX/whitespace
   s = s.replace(/\\ /g, ''); // Remove latex spaces
   s = s.replace(/\\/g, ''); // Remove remaining backslashes
   s = s.replace(/\s+/g, ''); // Remove all other spaces
   
-  // Implicit multiplication: 
-  // 1. Digit/Variable before Parenthesis: 2( -> 2*(, n( -> n*(
+  // 7. Implicit multiplication: 
   s = s.replace(/([0-9a-z])(\()/gi, '$1*$2');
-  // 2. Parenthesis before Digit/Variable: )2 -> )*2, )n -> )*n
   s = s.replace(/(\))([0-9a-z])/gi, '$1*$2');
-  // 3. Digit before Variable: 2n -> 2*n
   s = s.replace(/(\d)([a-z])/gi, '$1*$2');
-  // 4. Variable before Variable: xy -> x*y
   s = s.replace(/([a-z])(?=[a-z])/gi, '$1*');
-  // 5. Parenthesis before Parenthesis: )( -> )*(
   s = s.replace(/\)\(/g, ')*(');
   
   return s;
