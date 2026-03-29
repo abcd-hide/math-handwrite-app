@@ -137,6 +137,7 @@ export const sequenceSumGenerators = {
         const coeff = (f === '1' ? '' : (f === '-1' ? '-' : f));
         ans += `${sign}${coeff}${n}^{${p}}`;
       });
+      if (ans.startsWith('+')) ans = ans.substring(1);
       return { question: q, answer: ans };
     } else if (type === 2) { // (ak+b)(ck+d) product
       let a = getRandomNonZeroInt(-2, 2), b = getRandomInt(-3, 3);
@@ -165,10 +166,22 @@ export const sequenceSumGenerators = {
       const a = getRandomNonZeroInt(-3, 3);
       const q = texSigma(`\\left( k${a>0?'+'+a:a} \\right)^3`, N.tex);
       // Sum k^3 + 3a Sum k^2 + 3a^2 Sum k + a^3 Sum 1
+      let ans = '';
       const c4 = 1/4, c3 = 1/2 + a, c2 = 1/4 + 3*a/2 + 3*a*a/2, c1 = a/2 + 3*a*a/2 + a*a*a;
-      let ans = `${fmtFrac(1, 4)}${n}^4 ${fmtFrac(1+2*a, 2)}${n}^3 ${fmtFrac(1+6*a+6*a*a, 4)}${n}^2 ${fmtFrac(a+3*a*a+2*a*a*a, 2)}${n}`;
-      // Clean up signs
-      ans = ans.replace(/\s\+/g, '+').replace(/\s-/g, '-');
+      
+      const parts = [
+        { c: c4, text: `${fmtFrac(1, 4)}${n}^4` },
+        { c: c3, text: `${fmtFrac(1+2*a, 2)}${n}^3` },
+        { c: c2, text: `${fmtFrac(1+6*a+6*a*a, 4)}${n}^2` },
+        { c: c1, text: `${fmtFrac(a+3*a*a+2*a*a*a, 2)}${n}` }
+      ];
+      
+      parts.forEach(p => {
+        if (p.c === 0) return;
+        const sign = (p.text.startsWith('-') ? '' : (ans !== '' ? '+' : ''));
+        ans += `${sign}${p.text}`;
+      });
+      
       return { question: q, answer: ans };
     } else { // Factorial-like products: k(k+1) or k(k+1)(k+2)
       const sub = getRandomInt(1, 2);

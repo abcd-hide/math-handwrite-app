@@ -47,7 +47,8 @@ const cleanLatexForDisplay = (latex) => {
   let s = latex;
   // Remove MyScript specific artifacts that often break KaTeX rendering
   s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
-  // Skip stripping of \left( and \right) as they are needed for nice display  s = s.replace(/\\text\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\left/g, '').replace(/\\right/g, ''); 
+  s = s.replace(/\\text\{([^}]*)\}/g, '$1');
   s = s.replace(/\\ /g, ' ');
   return s;
 };
@@ -469,7 +470,7 @@ function App() {
       <main className="problem-card">
         <div className="problem-label">{currentProblem.type}</div>
         <div className="problem-text">
-           <BlockMath math={currentProblem.question} />
+           <InlineMath math={`\\displaystyle ${currentProblem.question}`} />
         </div>
       </main>
 
@@ -505,7 +506,7 @@ function App() {
           />
           {showSolution && screen === 'practice' && (
             <div style={{ position: 'absolute', bottom: 10, right: 15, background: 'rgba(0,100,50,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid #00FF99', color: '#00FF99', fontWeight: 'bold', zIndex: 20 }}>
-              正解: <InlineMath math={currentProblem.answer} />
+              正解: <InlineMath math={`\\displaystyle ${currentProblem.answer}`} />
             </div>
           )}
           {/* 1 second O/X feedback overlay for Test Mode inside answer area */}
@@ -518,7 +519,7 @@ function App() {
                 </motion.div>
                 {testFeedback === 'incorrect' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', bottom: '10px', right: '15px', background: 'rgba(0,0,0,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid var(--error-color)', color: 'white', fontWeight: 'bold', zIndex: 51, pointerEvents: 'none' }}>
-                    正解: <InlineMath math={currentProblem.answer} />
+                    正解: <InlineMath math={`\\displaystyle ${currentProblem.answer}`} />
                   </motion.div>
                 )}
               </>
