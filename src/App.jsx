@@ -470,7 +470,7 @@ function App() {
       <main className="problem-card">
         <div className="problem-label">{currentProblem.type}</div>
         <div className="problem-text">
-           <InlineMath math={`\\displaystyle ${currentProblem.question}`} />
+           <BlockMath math={currentProblem.question} />
         </div>
       </main>
 
@@ -505,8 +505,9 @@ function App() {
             clearTrigger={clearTrigger}
           />
           {showSolution && screen === 'practice' && (
-            <div style={{ position: 'absolute', bottom: 10, right: 15, background: 'rgba(0,100,50,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid #00FF99', color: '#00FF99', fontWeight: 'bold', zIndex: 20 }}>
-              正解: <InlineMath math={`\\displaystyle ${currentProblem.answer}`} />
+            <div style={{ position: 'absolute', bottom: 10, right: 15, background: 'rgba(0,100,50,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid #00FF99', color: '#00FF99', fontWeight: 'bold', zIndex: 20, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span>正解:</span> 
+              <span className="answer-math-block"><BlockMath math={currentProblem.answer} /></span>
             </div>
           )}
           {/* 1 second O/X feedback overlay for Test Mode inside answer area */}
@@ -518,8 +519,9 @@ function App() {
                   {testFeedback === 'correct' ? <Circle size="80vmin" color="var(--success-color)" strokeWidth={1.5} /> : <X size="80vmin" color="var(--error-color)" strokeWidth={1.5} />}
                 </motion.div>
                 {testFeedback === 'incorrect' && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', bottom: '10px', right: '15px', background: 'rgba(0,0,0,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid var(--error-color)', color: 'white', fontWeight: 'bold', zIndex: 51, pointerEvents: 'none' }}>
-                    正解: <InlineMath math={`\\displaystyle ${currentProblem.answer}`} />
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', bottom: '10px', right: '15px', background: 'rgba(0,0,0,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid var(--error-color)', color: 'white', fontWeight: 'bold', zIndex: 51, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span>正解:</span>
+                    <span className="answer-math-block"><BlockMath math={currentProblem.answer} /></span>
                   </motion.div>
                 )}
               </>

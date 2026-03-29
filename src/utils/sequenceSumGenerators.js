@@ -14,7 +14,7 @@ const getUpperLimit = () => {
     return { tex: 'n+1', expr: '(n+1)' };
 };
 
-const texSigma = (exprTex, upperTex) => `\\displaystyle\\sum_{k=1}^{${upperTex}} ${exprTex}`;
+const texSigma = (exprTex, upperTex) => `\\sum_{k=1}^{${upperTex}} ${exprTex}`;
 
 // LaTeX formatter helpers
 const fmtFrac = (num, den) => {
@@ -203,7 +203,7 @@ export const sequenceSumGenerators = {
     const N = getUpperLimit();
     const n = N.expr;
     if (isDouble) {
-      const q = `\\displaystyle\\sum_{i=1}^{n}\\left(\\sum_{j=1}^{n}ij\\right)`;
+      const q = `\\sum_{i=1}^{n}\\left(\\sum_{j=1}^{n}ij\\right)`;
       // (sum i) * (sum j) = (n(n+1)/2)^2 = 1/4 n^2(n+1)^2
       const ans = `\\frac{1}{4}${n}^2\\left( ${n}+1 \\right)^2`;
       return { question: q, answer: ans };

@@ -311,3 +311,4 @@ canvas.ms-canvas {
   text-align: center;
   backdrop-filter: blur(20px);
 }
+.answer-math-block .katex-display { margin: 0; }
