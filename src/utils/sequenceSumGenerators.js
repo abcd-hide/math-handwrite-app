@@ -18,9 +18,10 @@ const texSigma = (exprTex, upperTex) => String.raw`\sum_{k=1}^{${upperTex}} ${ex
 
 // LaTeX formatter helpers
 const wrapMath = (expr) => {
-  if (expr.includes('\\left\\{') || expr.includes('{')) return String.raw`\left[ ${expr} \right]`;
-  if (expr.includes('\\left(') || expr.includes('(')) return String.raw`\left\{ ${expr} \right\}`;
-  return String.raw`\left( ${expr} \right)`;
+  const s = String(expr);
+  if (s.includes('\\left\\{') || s.includes('{')) return String.raw`\left[ ${s} \right]`;
+  if (s.includes('\\left(') || s.includes('(')) return String.raw`\left\{ ${s} \right\}`;
+  return String.raw`\left( ${s} \right)`;
 };
 
 const fmtFrac = (num, den) => {
@@ -38,15 +39,8 @@ const fmtFrac = (num, den) => {
 const fmtPolyFactor = (expr) => wrapMath(expr);
 
 export const sequenceSumGenerators = {
-  // レベル1: 等差数列・等比数列の和 (Fixed for testing)
+  // レベル1: 等差数列・等比数列の和
   level1: () => {
-    // 完全に固定したテスト問題
-    // \sum_{k=1}^n 2\cdot (-2)^k
-    return {
-      question: String.raw`\sum_{k=1}^n 2\cdot (-2)^k`,
-      answer: String.raw`-\frac{4}{3}\left\{(-2)^n - 1\right\}`
-    };
-    /* 
     const isArithmetic = Math.random() < 0.5;
     const N = getUpperLimit();
     const n = N.expr;
@@ -57,27 +51,36 @@ export const sequenceSumGenerators = {
       if (a === 0 && b === 0) return sequenceSumGenerators.level1();
 
       let term = '';
-      if (a !== 0) term += (a === 1 ? 'k' : (a === -1 ? '-k' : `${a}k`));
-      if (b !== 0) term += (b > 0 ? (term ? `+${b}` : `${b}`) : `${b}`);
+      if (a !== 0) {
+        term += (a === 1 ? 'k' : (a === -1 ? '-k' : `${a}k`));
+      }
+      if (b !== 0) {
+        term += (b > 0 ? (term ? `+${b}` : `${b}`) : `${b}`);
+      }
       
       const exprTex = (a !== 0 && b !== 0) ? wrapMath(term) : term;
       const q = texSigma(exprTex, N.tex);
       
-      // Answer: a/2 n(n+1) + bn = a/2 n^2 + (a/2 + b)n
-      const c2 = a / 2;
-      const c1 = a / 2 + b;
+      // Answer: a/2 n(k+1)/2 + ... standard formula
+      // Actually we calculate analytically: sum_{k=1}^n (ak+b) = a*n(n+1)/2 + bn
+      // = (a/2)n^2 + (a/2 + b)n
       
       let ans = '';
-      if (c2 !== 0) {
+      // n^2 term
+      if (a !== 0) {
         const f2 = fmtFrac(a, 2);
-        ans += (f2 === '1' ? `${n}^2` : (f2 === '-1' ? `-${n}^2` : `${f2}${n}^2`));
+        const coeff = (f2 === '1' ? '' : (f2 === '-1' ? '-' : f2));
+        ans += `${coeff}${n}^2`;
       }
-      if (c1 !== 0) {
-        const sign = (c1 > 0 && ans !== '') ? '+' : '';
-        const f1 = fmtFrac(a + 2 * b, 2);
+      // n term
+      const c1Num = a + 2 * b;
+      if (c1Num !== 0) {
+        const f1 = fmtFrac(c1Num, 2);
+        const sign = (f1.startsWith('-') || ans === '') ? '' : '+';
         const coeff = (f1 === '1' ? '' : (f1 === '-1' ? '-' : f1));
         ans += `${sign}${coeff}${n}`;
       }
+      
       if (ans === '') ans = '0';
       return { question: q, answer: ans };
     } else {
@@ -93,14 +96,16 @@ export const sequenceSumGenerators = {
       const q = texSigma(String.raw`${cTex} ${aTex}^{${bTex}}`, N.tex);
       
       // Answer: sum_{k=1}^n c a^{k+b} = c a^{1+b} (a^n - 1) / (a - 1)
-      const firstTerm = c * Math.pow(a, 1 + b);
+      const firstTermNum = c * Math.pow(a, 1 + b);
       const den = a - 1;
-      const coeff = fmtFrac(firstTerm, den);
-      const aMath = a < 0 ? `(${a})` : `${a}`;
-      const ans = String.raw`${coeff === '1' ? '' : (coeff === '-1' ? '-' : coeff)}${wrapMath(String.raw`${aMath}^{${n}} - 1`)}`;
+      const coeff = fmtFrac(firstTermNum, den);
+      const aMath = a < 0 ? wrapMath(a) : `${a}`;
+      
+      // coeff * (a^n - 1)
+      const inner = String.raw`${aMath}^{${n}} - 1`;
+      const ans = String.raw`${coeff === '1' ? '' : (coeff === '-1' ? '-' : coeff)}${wrapMath(inner)}`;
       return { question: q, answer: ans };
     }
-    */
   },
 
   // レベル2: 多項式、積の形、立方、連続整数積
