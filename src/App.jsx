@@ -14,8 +14,10 @@ const cleanMath = (latex) => {
   if (!latex) return "";
   let s = latex;
 
-  // 1. Remove LaTeX specific non-visible delimiter dots (e.g., \left. \right.)
+  // 1. Remove LaTeX specific non-visible delimiter dots and text tags
   s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
+  s = s.replace(/\\text\s*\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\unicode\s*\{([^}]*)\}/g, '');
 
   // 2. Handle \frac{a}{b} -> ((a)/(b)) with optional spaces and ONE LEVEL of nested braces
   s = s.replace(/\\frac\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
@@ -24,9 +26,7 @@ const cleanMath = (latex) => {
   s = s.replace(/\^\{([^}]*)\}/g, '^($1)');
 
   // 4. Normalize ALL bracket types to parentheses (handles \left\{, \{, [, etc.)
-  // First remove the LaTeX command parts but keep the actual bracket characters
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
-  // Then replace all brace and bracket variations with parentheses
   s = s.replace(/\\\{/g, '(').replace(/\\\}/g, ')'); 
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
   s = s.replace(/\[/g, '(').replace(/\]/g, ')');
@@ -36,9 +36,9 @@ const cleanMath = (latex) => {
   s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); 
   
   // 6. Final cleanup of LaTeX/whitespace
-  s = s.replace(/\\ /g, ''); // Remove latex spaces
-  s = s.replace(/\\/g, ''); // Remove remaining backslashes
-  s = s.replace(/\s+/g, ''); // Remove all other spaces
+  s = s.replace(/\\ /g, ''); 
+  s = s.replace(/\\/g, ''); 
+  s = s.replace(/\s+/g, ''); 
   
   // 7. Implicit multiplication: 
   s = s.replace(/([0-9a-z])(\()/gi, '$1*$2');
@@ -68,6 +68,9 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
     const cleanedInput = cleanMath(inputLatex);
     const cleanedTarget = cleanMath(targetMath);
     
+    // FIRST STAGE: Literal match fallback (guarantees "Exact Match" cases pass)
+    if (cleanedInput === cleanedTarget) return true;
+
     if (isEquation) {
       return cleanedInput.replace(/\s/g, '').toLowerCase() === cleanedTarget.replace(/\s/g, '').toLowerCase();
     }
