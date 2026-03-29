@@ -27,8 +27,6 @@ const normalizeSign = (str) => {
   res = res.replace(/--/g, "+");
   // 括弧内の先頭が + の場合は除去
   res = res.replace(/\(\+/g, "(");
-  // 文頭の + の除去 (stringifyPolyなどで行っているが念のため)
-  if (res.startsWith("+")) res = res.substring(1);
   return res;
 };
 
@@ -50,7 +48,7 @@ const fmtCoeff = (n, first = false) => {
 
 const fmtTerm = (coeff, term, first = false) => {
   if (coeff === 0 || coeff === undefined) return "";
-  return normalizeSign(`${fmtCoeff(coeff, first)}${term}`);
+  return `${fmtCoeff(coeff, first)}${term}`;
 };
 
 /**
@@ -69,7 +67,7 @@ const stringifyPoly = (terms, targetVars) => {
   if (cVal !== 0 || res === "") {
     res += fmtConst(cVal, first);
   }
-  return res;
+  return normalizeSign(res);
 };
 
 /**
