@@ -14,38 +14,53 @@ const cleanMath = (latex) => {
   if (!latex) return "";
   let s = latex;
 
-  // 1. Remove LaTeX specific non-visible delimiter dots and text tags
+  // 1. Initial cleanup of non-visible artifacts and LaTeX formatting
   s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
+  s = s.replace(/\\displaystyle/g, '');
   s = s.replace(/\\text\s*\{([^}]*)\}/g, '$1');
   s = s.replace(/\\unicode\s*\{([^}]*)\}/g, '');
+  s = s.replace(/\\ /g, ' ');
 
-  // 2. Handle \frac{a}{b} -> ((a)/(b)) with optional spaces and ONE LEVEL of nested braces
-  s = s.replace(/\\frac\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
+  // 2. Handle \frac, \dfrac, \tfrac, \cfrac -> ((a)/(b)) RECURSIVELY
+  // This handles nested fractions and common LaTeX fraction variants
+  let oldS = "";
+  while (s !== oldS) {
+    oldS = s;
+    s = s.replace(/\\(?:d|t|c)?frac\s*\{((?:[^{}]|\{[^{}]*\})*)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
+  }
   
   // 3. Handle power notation with braces ^{n} -> ^(n)
   s = s.replace(/\^\{([^}]*)\}/g, '^($1)');
 
-  // 4. Normalize ALL bracket types to parentheses (handles \left\{, \{, [, etc.)
+  // 4. Normalize ALL bracket types to parentheses
+  s = s.replace(/\\left\s*\(/g, '(').replace(/\\right\s*\)/g, ')');
+  s = s.replace(/\\left\s*\{/g, '(').replace(/\\right\s*\}/g, ')');
+  s = s.replace(/\\left\s*\[/g, '(').replace(/\\right\s*\]/g, ')');
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
   s = s.replace(/\\\{/g, '(').replace(/\\\}/g, ')'); 
   s = s.replace(/\{/g, '(').replace(/\}/g, ')');
   s = s.replace(/\[/g, '(').replace(/\]/g, ')');
 
-  // 5. LaTeX symbols to mathjs
+  // 5. Symbols to mathjs
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
-  s = s.replace(/\\log_\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); 
+  s = s.replace(/\\div/g, '/');
   
-  // 6. Final cleanup of LaTeX/whitespace
-  s = s.replace(/\\ /g, ''); 
+  // 6. Logarithm handling: \log_{base}(x) or \log_{base} x -> log(x, base)
+  s = s.replace(/\\log_?\{?([^}]*)\}?\(?([^)]*)\)?/g, 'log($2, $1)'); 
+  
+  // 7. Final stripping of remaining backslashes and whitespace
   s = s.replace(/\\/g, ''); 
   s = s.replace(/\s+/g, ''); 
   
-  // 7. Implicit multiplication: 
+  // 8. Implicit multiplication
   s = s.replace(/([0-9a-z])(\()/gi, '$1*$2');
   s = s.replace(/(\))([0-9a-z])/gi, '$1*$2');
   s = s.replace(/(\d)([a-z])/gi, '$1*$2');
   s = s.replace(/([a-z])(?=[a-z])/gi, '$1*');
   s = s.replace(/\)\(/g, ')*(');
+
+  // 9. Single char exponents: ^k -> ^(k)
+  s = s.replace(/\^([a-z0-9])/gi, '^($1)');
   
   return s;
 };
@@ -54,7 +69,6 @@ const cleanMath = (latex) => {
 const cleanLatexForDisplay = (latex) => {
   if (!latex) return "";
   let s = latex;
-  // Remove MyScript specific artifacts that often break KaTeX rendering
   s = s.replace(/\\left\./g, '').replace(/\\right\./g, '');
   s = s.replace(/\\left/g, '').replace(/\\right/g, ''); 
   s = s.replace(/\\text\{([^}]*)\}/g, '$1');
@@ -68,46 +82,75 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
     const cleanedInput = cleanMath(inputLatex);
     const cleanedTarget = cleanMath(targetMath);
     
-    // FIRST STAGE: Literal match fallback (guarantees "Exact Match" cases pass)
-    if (cleanedInput === cleanedTarget) return true;
+    // Diagnostic logging
+    console.log('--- areEquivalent Check ---');
+    console.log('Input LaTeX:', inputLatex);
+    console.log('Target LaTeX:', targetMath);
+    console.log('Cleaned Input:', cleanedInput);
+    console.log('Cleaned Target:', cleanedTarget);
+
+    // FIRST STAGE: Literal match fallback
+    if (cleanedInput === cleanedTarget) {
+      console.log('Result: Literal Match');
+      return true;
+    }
 
     if (isEquation) {
       return cleanedInput.replace(/\s/g, '').toLowerCase() === cleanedTarget.replace(/\s/g, '').toLowerCase();
     }
 
-    const node1 = math.parse(cleanedInput);
-    const node2 = math.parse(cleanedTarget);
+    // Try parsing both
+    let node1, node2;
+    try {
+      node2 = math.parse(cleanedTarget);
+      node1 = math.parse(cleanedInput);
+    } catch (parseErr) {
+      console.warn('Math parse failed', parseErr.message);
+      return false;
+    }
     
-    // Variables encountered: x,y,z, a,b,c, p,q,r, s,t,u, i,j,k, m,n
+    // SECOND STAGE: Algebraic simplification check
+    try {
+      const diffNode = math.parse(`(${cleanedInput}) - (${cleanedTarget})`);
+      const simplified = math.simplify(diffNode);
+      if (simplified.toString() === '0') {
+        console.log('Result: Algebraic Match (Simplified to 0)');
+        return true;
+      }
+    } catch (e) {
+      // Simplification fallback
+    }
+
+    // THIRD STAGE: Numerical evaluation
+    // variables: x,y,z, a,b,c, p,q,r, s,t,u, i,j,k, m,n, N, M
     const testPoints = [
-      { x: 1.5, y: 2.7, z: 0.8, a: -2.3, b: 1.2, c: -0.8, p: 0.4, q: -1.2, r: 0.9, s: 1.1, t: -0.5, u: 0.3, i: 1, j: 2, k: 3, m: 4, n: 1 },
-      { x: -2.1, y: 0.3, z: -1.5, a: 1.5, b: -2.4, c: 3.1, p: -0.7, q: 0.5, r: -1.1, s: 0.2, t: 1.4, u: -0.9, i: 2, j: 3, k: 4, m: 5, n: 2 },
-      { x: 3.2, y: -1.5, z: 2.1, a: 0.5, b: 3.4, c: -1.1, p: 1.2, q: -0.8, r: 0.3, s: -0.4, t: 0.2, u: 1.1, i: 3, j: 4, k: 5, m: 6, n: 3 },
-      { x: 0.5, y: 1.1, z: -0.9, a: 2.3, b: -1.2, c: 0.8, p: -0.4, q: 1.2, r: -0.9, s: 1.5, t: -1.1, u: 0.5, i: 4, j: 5, k: 6, m: 7, n: 4 },
-      { x: 1.1, y: -0.9, z: 0.5, a: -1.5, b: 2.4, c: -3.1, p: 0.7, q: -0.5, r: 1.1, s: -0.2, t: -1.4, u: 0.9, i: 5, j: 6, k: 7, m: 8, n: 5 },
-      { x: 2.2, y: 1.2, z: 3.3, a: 4.4, b: 5.5, c: 6.6, p: 7.7, q: 8.8, r: 9.9, s: 0.1, t: 0.2, u: 0.3, i: 10, j: 11, k: 12, m: 13, n: 10 }
+      { x: 1.5, y: 2.7, z: 0.8, a: -2.3, b: 1.2, c: -0.8, p: 0.4, q: -1.2, r: 0.9, s: 1.1, t: -0.5, u: 0.3, i: 1, j: 2, k: 3, m: 4, n: 1, N: 1, M: 2 },
+      { x: -2.1, y: 0.3, z: -1.5, a: 1.5, b: -2.4, c: 3.1, p: -0.7, q: 0.5, r: -1.1, s: 0.2, t: 1.4, u: -0.9, i: 2, j: 3, k: 4, m: 5, n: 2, N: 2, M: 3 },
+      { x: 3.2, y: -1.5, z: 2.1, a: 0.5, b: 3.4, c: -1.1, p: 1.2, q: -0.8, r: 0.3, s: -0.4, t: 0.2, u: 1.1, i: 3, j: 4, k: 5, m: 6, n: 3, N: 3, M: 4 },
+      { x: 2.2, y: 1.2, z: 3.3, a: 4.4, b: 5.5, c: 6.6, p: 7.7, q: 8.8, r: 9.9, s: 0.1, t: 0.2, u: 0.3, i: 10, j: 11, k: 12, m: 13, n: 10, N: 10, M: 11 }
     ];
     
-    return testPoints.every(scope => {
+    const isEquivalent = testPoints.every(scope => {
       try {
         const v1 = node1.evaluate(scope);
         const v2 = node2.evaluate(scope);
-        
-        // Use mathjs utilities for more robust equality check
         if (math.equal(v1, v2)) return true;
-        
-        // Handle floating point differences as fallback
         const diff = math.abs(math.subtract(v1, v2));
-        return diff < 1e-7;
+        return diff < 1e-5;
       } catch (e) {
         return false;
       }
     });
+
+    console.log('Result:', isEquivalent ? 'Numerical Match' : 'Mismatch');
+    return isEquivalent;
   } catch (e) {
-    console.warn('Math comparison failed', e);
+    console.warn('Math comparison exception', e);
     return false;
   }
 };
+
+
 
 // Robust KaTeX display component that renders directly to DOM
 const KatexDisplay = ({ math, block = false, settings = {} }) => {
