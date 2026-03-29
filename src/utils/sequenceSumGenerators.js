@@ -17,6 +17,12 @@ const getUpperLimit = () => {
 const texSigma = (exprTex, upperTex) => String.raw`\sum_{k=1}^{${upperTex}} ${exprTex}`;
 
 // LaTeX formatter helpers
+const wrapMath = (expr) => {
+  if (expr.includes('\\left\\{') || expr.includes('{')) return String.raw`\left[ ${expr} \right]`;
+  if (expr.includes('\\left(') || expr.includes('(')) return String.raw`\left\{ ${expr} \right\}`;
+  return String.raw`\left( ${expr} \right)`;
+};
+
 const fmtFrac = (num, den) => {
   if (den === 1) return `${num}`;
   if (num === 0) return `0`;
@@ -29,7 +35,7 @@ const fmtFrac = (num, den) => {
   return String.raw`${sign}\frac{${Math.abs(n)}}{${Math.abs(d)}}`;
 };
 
-const fmtPolyFactor = (expr) => String.raw`\left(${expr}\right)`;
+const fmtPolyFactor = (expr) => wrapMath(expr);
 
 export const sequenceSumGenerators = {
   // レベル1: 等差数列・等比数列の和 (Fixed for testing)
@@ -38,7 +44,7 @@ export const sequenceSumGenerators = {
     // \sum_{k=1}^n 2\cdot (-2)^k
     return {
       question: String.raw`\sum_{k=1}^n 2\cdot (-2)^k`,
-      answer: String.raw`-\frac{4}{3}\left((-2)^n - 1\right)`
+      answer: String.raw`-\frac{4}{3}\left\{(-2)^n - 1\right\}`
     };
     /* 
     const isArithmetic = Math.random() < 0.5;
@@ -54,7 +60,7 @@ export const sequenceSumGenerators = {
       if (a !== 0) term += (a === 1 ? 'k' : (a === -1 ? '-k' : `${a}k`));
       if (b !== 0) term += (b > 0 ? (term ? `+${b}` : `${b}`) : `${b}`);
       
-      const exprTex = (a !== 0 && b !== 0) ? String.raw`\left( ${term} \right)` : term;
+      const exprTex = (a !== 0 && b !== 0) ? wrapMath(term) : term;
       const q = texSigma(exprTex, N.tex);
       
       // Answer: a/2 n(n+1) + bn = a/2 n^2 + (a/2 + b)n
@@ -81,7 +87,7 @@ export const sequenceSumGenerators = {
       const b = getRandomInt(-1, 1);
       const c = getRandomNonZeroInt(-2, 2);
       
-      const aTex = a < 0 ? String.raw`\left( ${a} \right)` : `${a}`;
+      const aTex = a < 0 ? wrapMath(a) : `${a}`;
       const cTex = (c === 1 ? '' : (c === -1 ? '-' : String.raw`${c} \cdot `));
       const bTex = (b === 0 ? 'k' : (b === 1 ? 'k+1' : `k-1`));
       const q = texSigma(String.raw`${cTex} ${aTex}^{${bTex}}`, N.tex);
@@ -91,7 +97,7 @@ export const sequenceSumGenerators = {
       const den = a - 1;
       const coeff = fmtFrac(firstTerm, den);
       const aMath = a < 0 ? `(${a})` : `${a}`;
-      const ans = String.raw`${coeff === '1' ? '' : (coeff === '-1' ? '-' : coeff)}\left( ${aMath}^{${n}} - 1 \right)`;
+      const ans = String.raw`${coeff === '1' ? '' : (coeff === '-1' ? '-' : coeff)}${wrapMath(String.raw`${aMath}^{${n}} - 1`)}`;
       return { question: q, answer: ans };
     }
     */
@@ -99,7 +105,7 @@ export const sequenceSumGenerators = {
 
   // レベル2: 多項式、積の形、立方、連続整数積
   level2: () => {
-    const type = getRandomInt(1, 5);
+    const type = getRandomInt(1, 4);
     const N = getUpperLimit();
     const n = N.expr;
     
@@ -115,7 +121,7 @@ export const sequenceSumGenerators = {
         const coeff = (val === 1 && k !== '' ? '' : (val === -1 && k !== '' ? '-' : val));
         term += `${sign}${coeff}${k}`;
       });
-      const q = texSigma(String.raw`\left( ${term} \right)`, N.tex);
+      const q = texSigma(wrapMath(term), N.tex);
       
       const c4 = a / 4;
       const c3 = a / 2 + b / 3;
@@ -144,7 +150,7 @@ export const sequenceSumGenerators = {
       let c = getRandomNonZeroInt(-2, 2), d = getRandomInt(-3, 3);
       const t1 = `${a===1?'k':(a===-1?'-k':a+'k')}${b>0?'+'+b:(b<0?b:'')}`;
       const t2 = `${c===1?'k':(c===-1?'-k':c+'k')}${d>0?'+'+d:(d<0?d:'')}`;
-      const q = texSigma(String.raw`\left( ${t1} \right) \left( ${t2} \right)`, N.tex);
+      const q = texSigma(String.raw`${wrapMath(t1)} ${wrapMath(t2)}`, N.tex);
       const ac = a * c, adbc = a * d + b * c, bd = b * d;
       let ans = '';
       if (ac/3 !== 0) ans += String.raw`${fmtFrac(ac, 3)}${n}^3`;
@@ -159,7 +165,7 @@ export const sequenceSumGenerators = {
       return { question: q, answer: ans.startsWith('+') ? ans.substring(1) : ans };
     } else if (type === 3) { // (k+a)^3
       const a = getRandomNonZeroInt(-3, 3);
-      const q = texSigma(String.raw`\left( k${a>0?'+'+a:a} \right)^3`, N.tex);
+      const q = texSigma(String.raw`${wrapMath(String.raw`k${a>0?'+'+a:a}`)}^3`, N.tex);
       let ans = '';
       const c4 = 1/4, c3 = 1/2 + a, c2 = 1/4 + 3*a/2 + 3*a*a/2, c1 = a/2 + 3*a*a/2 + a*a*a;
       
@@ -178,12 +184,12 @@ export const sequenceSumGenerators = {
     } else {
       const sub = getRandomInt(1, 2);
       if (sub === 1) { // k(k+1)
-        const q = texSigma(String.raw`k\left( k+1 \right)`, N.tex);
-        const ans = String.raw`\frac{1}{3}${n}\left(${n}+1\right)\left(${n}+2\right)`;
+        const q = texSigma(String.raw`k${wrapMath(String.raw`k+1`)}`, N.tex);
+        const ans = String.raw`\frac{1}{3}${n}${wrapMath(n+'+1')}${wrapMath(n+'+2')}`;
         return { question: q, answer: ans };
       } else { // k(k+1)(k+2)
-        const q = texSigma(String.raw`k\left( k+1 \right)\left( k+2 \right)`, N.tex);
-        const ans = String.raw`\frac{1}{4}${n}\left(${n}+1\right)\left(${n}+2\right)\left(${n}+3\right)`;
+        const q = texSigma(String.raw`k${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}`, N.tex);
+        const ans = String.raw`\frac{1}{4}${n}${wrapMath(n+'+1')}${wrapMath(n+'+2')}${wrapMath(n+'+3')}`;
         return { question: q, answer: ans };
       }
     }
@@ -194,12 +200,12 @@ export const sequenceSumGenerators = {
     const N = getUpperLimit();
     const n = N.expr;
     if (isDouble) {
-      const q = String.raw`\sum_{i=1}^{n}\left(\sum_{j=1}^{n}ij\right)`;
-      const ans = String.raw`\frac{1}{4}${n}^2\left( ${n}+1 \right)^2`;
+      const q = String.raw`\sum_{i=1}^{n}${wrapMath(String.raw`\sum_{j=1}^{n}ij`)}`;
+      const ans = String.raw`\frac{1}{4}${n}^2${wrapMath(n+'+1')}^2`;
       return { question: q, answer: ans };
     } else {
       const a = getRandomNonZeroInt(-2, 2);
-      const q = texSigma(String.raw`\left( n ${a>0?'+':''}${a}k \right)`, N.tex);
+      const q = texSigma(wrapMath(String.raw`n ${a>0?'+':''}${a}k`), N.tex);
       const f2 = fmtFrac(2 + a, 2);
       const f1 = fmtFrac(a, 2);
       let ans = '';
@@ -217,11 +223,11 @@ export const sequenceSumGenerators = {
     const n = N.expr;
     const type = getRandomInt(1, 2);
     if (type === 1) {
-      const q = texSigma(String.raw`k\left( k+1 \right)`, N.tex);
-      return { question: q, answer: String.raw`\frac{1}{3}${n}\left( ${n}+1 \right)\left( ${n}+2 \right)` };
+      const q = texSigma(String.raw`k${wrapMath(String.raw`k+1`)}`, N.tex);
+      return { question: q, answer: String.raw`\frac{1}{3}${n}${wrapMath(n+'+1')}${wrapMath(n+'+2')}` };
     } else {
-      const q = texSigma(String.raw`k\left( k-1 \right)`, N.tex);
-      return { question: q, answer: String.raw`\frac{1}{3}\left( ${n}-1 \right)${n}\left( ${n}+1 \right)` };
+      const q = texSigma(String.raw`k${wrapMath(String.raw`k-1`)}`, N.tex);
+      return { question: q, answer: String.raw`\frac{1}{3}${wrapMath(n+'-1')}${n}${wrapMath(n+'+1')}` };
     }
   },
 
@@ -230,14 +236,14 @@ export const sequenceSumGenerators = {
     const n = N.expr;
     const type = getRandomInt(1, 3);
     if (type === 1) { // 1/k(k+1)
-      const q = texSigma(String.raw`\frac{1}{k\left( k+1 \right)}`, N.tex);
+      const q = texSigma(String.raw`\frac{1}{k${wrapMath(String.raw`k+1`)}}`, N.tex);
       return { question: q, answer: String.raw`\frac{${n}}{${n}+1}` };
     } else if (type === 2) { // 1/(k+1)(k+2)
-      const q = texSigma(String.raw`\frac{1}{\left( k+1 \right)\left( k+2 \right)}`, N.tex);
-      return { question: q, answer: String.raw`\frac{${n}}{2\left( ${n}+2 \right)}` };
+      const q = texSigma(String.raw`\frac{1}{${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}}`, N.tex);
+      return { question: q, answer: String.raw`\frac{${n}}{2${wrapMath(n+'+2')}}` };
     } else { // 1/k(k+1)(k+2)
-      const q = texSigma(String.raw`\frac{1}{k\left( k+1 \right)\left( k+2 \right)}`, N.tex);
-      return { question: q, answer: String.raw`\frac{${n}\left( ${n}+3 \right)}{4\left( ${n}+1 \right)\left( ${n}+2 \right)}` };
+      const q = texSigma(String.raw`\frac{1}{k${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}}`, N.tex);
+      return { question: q, answer: String.raw`\frac{${n}${wrapMath(n+'+3')}}{4${wrapMath(n+'+1')}${wrapMath(n+'+2')}}` };
     }
   },
 
@@ -247,15 +253,15 @@ export const sequenceSumGenerators = {
     const r = Math.random() < 0.5 ? 2 : 3;
     const q = texSigma(String.raw`k \cdot ${r}^{k}`, N.tex);
     const den = (1 - r) * (1 - r);
-    const ans = String.raw`\frac{${r} - \left( ${n}+1 \right) ${r}^{${n}+1} + ${n} \cdot ${r}^{${n}+2}}{${den}}`;
+    const ans = String.raw`\frac{${r} - ${wrapMath(n+'+1')} ${r}^{${n}+1} + ${n} \cdot ${r}^{${n}+2}}{${den}}`;
     return { question: q, answer: ans };
   },
 
   level7: () => {
     const N = getUpperLimit();
     const n = N.expr;
-    const q = texSigma(String.raw`\frac{2k+1}{k^2 \left( k+1 \right)^2}`, N.tex);
-    return { question: q, answer: String.raw`\frac{${n}\left( ${n}+2 \right)}{\left( ${n}+1 \right)^2}` };
+    const q = texSigma(String.raw`\frac{2k+1}{k^2 ${wrapMath(String.raw`k+1`)}^2}`, N.tex);
+    return { question: q, answer: String.raw`\frac{${n}${wrapMath(n+'+2')}}{${wrapMath(n+'+1')}^2}` };
   },
 
   level8: () => {
@@ -267,10 +273,10 @@ export const sequenceSumGenerators = {
       return { question: q, answer: String.raw`\sqrt{${n}+1} - 1` };
     } else if (type === 2) { // log
       const q = texSigma(String.raw`\log_{2} \frac{k+1}{k}`, N.tex);
-      return { question: q, answer: String.raw`\log_{2} \left( ${n}+1 \right)` };
+      return { question: q, answer: String.raw`\log_{2} ${wrapMath(n+'+1')}` };
     } else { // factorial
       const q = texSigma(String.raw`k \cdot k!`, N.tex);
-      return { question: q, answer: String.raw`\left( ${n}+1 \right)! - 1` };
+      return { question: q, answer: String.raw`${wrapMath(n+'+1')}! - 1` };
     }
   }
 };
