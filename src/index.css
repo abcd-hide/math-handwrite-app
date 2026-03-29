@@ -277,7 +277,7 @@ header {
 }
 
 /* Force answer area as well */
-.answer-area svg path {
+.answer-area .ms-editor svg path {
   stroke: #00FF99 !important;
   fill: #00FF99 !important;
   stroke-width: 0.3px !important;

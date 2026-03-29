@@ -485,7 +485,7 @@ function App() {
               <>
                 <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} 
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 50, pointerEvents: 'none' }}>
-                  {testFeedback === 'correct' ? <Circle style={{ height: '80%', aspectRatio: '1/1' }} color="var(--success-color)" strokeWidth={1.5} /> : <X style={{ height: '80%', aspectRatio: '1/1' }} color="var(--error-color)" strokeWidth={1.5} />}
+                  {testFeedback === 'correct' ? <Circle style={{ height: '90%', aspectRatio: '1/1' }} color="var(--success-color)" strokeWidth={1.5} /> : <X style={{ height: '90%', aspectRatio: '1/1' }} color="var(--error-color)" strokeWidth={1.5} />}
                 </motion.div>
                 {testFeedback === 'incorrect' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', bottom: '10px', right: '15px', background: 'rgba(0,0,0,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid var(--error-color)', color: 'white', fontWeight: 'bold', zIndex: 51, pointerEvents: 'none' }}>
