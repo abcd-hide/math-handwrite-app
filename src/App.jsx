@@ -165,7 +165,7 @@ function App() {
     if (selectedMode === 'test') {
       let initTime = 60;
       if ([3, 4, 5, 7, 8].includes(startLvl)) initTime = 120;
-      if ([6, 9, 10, 11].includes(startLvl)) initTime = 300;
+      if ([6, 9, 10, 11, 12].includes(startLvl)) initTime = 300;
       setTimeSeconds(initTime);
     } else {
       setTimeSeconds(0);
@@ -307,7 +307,7 @@ function App() {
               onChange={(e) => setLevel(parseInt(e.target.value))}
               style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', borderRadius: '8px', fontSize: '16px' }}
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((lvl) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lvl) => (
                 <option key={lvl} value={lvl} style={{ background: '#1a1a1e' }}>Level {lvl}</option>
               ))}
             </select>
@@ -424,7 +424,7 @@ function App() {
               onChange={(e) => changeLevel(parseInt(e.target.value))}
               style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((lvl) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((lvl) => (
                 <option key={lvl} value={lvl} style={{ background: '#1a1a1e' }}>Level {lvl}</option>
               ))}
             </select>

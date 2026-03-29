@@ -425,7 +425,16 @@ export const problemGenerators = {
             if (k !== 0) break;
           }
         }
-        const q = `(${v}${fmtConst(a)})(${v}${fmtConst(b)})(${v}${fmtConst(c)})(${v}${fmtConst(d)})${fmtConst(k)}`;
+        // 重複値を2乗表記へ変換するヘルパー
+        const fmtLinearFactors = (vals) => {
+          const counts = {};
+          vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+          return Object.entries(counts).map(([val, cnt]) => {
+            const s = `(${v}${fmtConst(Number(val))})`;
+            return cnt === 1 ? s : `${s}^${cnt}`;
+          }).join('');
+        };
+        const q = `${fmtLinearFactors([a, b, c, d])}${fmtConst(k)}`;
         const f1 = stringifyPoly({ [`${v}^2`]: 1, [v]: S, const: resM }, [`${v}^2`, v]);
         const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: S, const: resN }, [`${v}^2`, v]);
         return { question: q, answer: formatFactors([f1, f2]) };
@@ -437,10 +446,19 @@ export const problemGenerators = {
           a=p[0]; c=p[1]; b=p[2]; d=p[3]; P=a*c; s1 = a + c; s2 = b + d; offset = getRandomNonZeroInt(-2, 2); resM = s1 + offset; resN = s2 - offset; k = resM * resN - s1 * s2;
           if (k !== 0) break;
         }
-        const q = `(${v}${fmtConst(a)})(${v}${fmtConst(c)})(${v}${fmtConst(b)})(${v}${fmtConst(d)})${fmtTerm(k, v+'^2')}`;
+        const fmtLinearFactors4 = (vals) => {
+          const counts = {};
+          vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+          return Object.entries(counts).map(([val, cnt]) => {
+            const s = `(${v}${fmtConst(Number(val))})`;
+            return cnt === 1 ? s : `${s}^${cnt}`;
+          }).join('');
+        };
+        const q = `${fmtLinearFactors4([a, c, b, d])}${fmtTerm(k, v+'^2')}`;
         const f1 = stringifyPoly({ [`${v}^2`]: 1, [v]: resM, const: P }, [`${v}^2`, v]);
         const f2 = stringifyPoly({ [`${v}^2`]: 1, [v]: resN, const: P }, [`${v}^2`, v]);
         return { question: q, answer: formatFactors([f1, f2]) };
+
       } else if (type === 5) { // 多段置き換え
         const a = getRandomInt(-2, 2), p = getRandomInt(-3, 3), q = a - p, r = getRandomInt(-3, 3), s = a - r;
         if (p*q === r*s || (p+q) !== (r+s)) return problemGenerators.factorization.level6(type); 
@@ -477,11 +495,20 @@ export const problemGenerators = {
         const factors = [...getFactors(v, a), ...getFactors(v, b)];
         return { question: q, answer: formatFactors(factors) };
       } else {
+        // 約60%の確率でcを負の平方数に
         let a, c;
+        const forceNegSquare = Math.random() < 0.6;
+        let attempts = 0;
         while (true) {
           a = getRandomInt(1, 5);
-          c = getRandomNonZeroInt(-6, 6);
-          if (a * a - 4 * c >= 0 && Math.sqrt(a * a - 4 * c) % 1 === 0) continue;
+          if (forceNegSquare) {
+            const r = getRandomInt(1, 4);
+            c = -(r * r);
+          } else {
+            c = getRandomNonZeroInt(-6, 6);
+          }
+          const disc = a * a - 4 * c;
+          if (disc >= 0 && Math.sqrt(disc) % 1 === 0) { if (++attempts < 20) continue; }
           break;
         }
         const mid = 2 * c - a * a;
@@ -591,6 +618,10 @@ export const problemGenerators = {
         const c2 = L1.p * Q.B - L1.r * Q.A;
         const c1 = L1.p * Q.C - L1.r * Q.B;
         const c0 = -L1.r * Q.C;
+        // 全係数のGCDが1になることを保証（問題に共通因数が残らないよう）
+        const coeffs3 = [c3, c2, c1, c0].filter(x => x !== 0).map(Math.abs);
+        const g3 = coeffs3.reduce((a, b) => gcd(a, b), coeffs3[0] || 1);
+        if (g3 > 1) return problemGenerators.factorization.level9();
         const q = `${fmtTerm(c3, v+'^3', true)} ${fmtTerm(c2, v+'^2')} ${fmtTerm(c1, v)} ${fmtConst(c0)}`;
         return { question: q, answer: formatFactors([L1.str, Q.str]) };
       } else {
@@ -605,7 +636,9 @@ export const problemGenerators = {
         const c2 = E * Q.C + F * Q.B + G * Q.A;
         const c1 = F * Q.C + G * Q.B;
         const c0 = G * Q.C;
-        
+        const coeffs4 = [c4, c3, c2, c1, c0].filter(x => x !== 0).map(Math.abs);
+        const g4 = coeffs4.reduce((a, b) => gcd(a, b), coeffs4[0] || 1);
+        if (g4 > 1) return problemGenerators.factorization.level9();
         const q = `${fmtTerm(c4, v+'^4', true)} ${fmtTerm(c3, v+'^3')} ${fmtTerm(c2, v+'^2')} ${fmtTerm(c1, v)} ${fmtConst(c0)}`;
         return { question: q, answer: formatFactors([L1.str, L2.str, Q.str]) };
       }
@@ -717,14 +750,34 @@ export const problemGenerators = {
 
       } else if (type === 3) {
         // (ax-by)^3+(by-cz)^3+(cz-ax)^3 = 3(ax-by)(by-cz)(cz-ax) パターン
-        const A2 = `${fmtTerm(a, x, true)}${fmtTerm(-b, y)}`;
-        const B2 = `${fmtTerm(b, y, true)}${fmtTerm(-c, z)}`;
-        const C2 = `${fmtTerm(c, z, true)}${fmtTerm(-a, x)}`;
-        const q = `(${A2})^3 + (${B2})^3 + (${C2})^3`;
-        const f1 = stringifyPoly({ [x]: a, [y]: -b }, [x, y]);
-        const f2 = stringifyPoly({ [y]: b, [z]: -c }, [y, z]);
-        const f3 = stringifyPoly({ [z]: c, [x]: -a }, [z, x]);
-        return { question: q, answer: formatFactors([f1, f2, f3], '3') };
+        // a,b,cのうち2つが±2のとき、各項の2を8として外に出す
+        const abs2count = [a, b, c].filter(v => Math.abs(v) === 2).length;
+        const factor8 = abs2count >= 2; // 2つ以上が絶対値2なら各3乗項が8倍
+
+        if (factor8) {
+          // 各(ax-by)が2(±x∓y)なので各3乗が8倍 → 共通因数8を外に出す
+          const sa = a > 0 ? 1 : -1, sb = b > 0 ? 1 : -1, sc = c > 0 ? 1 : -1;
+          const na = Math.abs(a) === 2 ? sa : a;
+          const nb = Math.abs(b) === 2 ? sb : b;
+          const nc = Math.abs(c) === 2 ? sc : c;
+          const innerA = `${fmtTerm(na, x, true)}${fmtTerm(-nb, y)}`;
+          const innerB = `${fmtTerm(nb, y, true)}${fmtTerm(-nc, z)}`;
+          const innerC = `${fmtTerm(nc, z, true)}${fmtTerm(-na, x)}`;
+          const qFull = `8(${innerA})^3 + 8(${innerB})^3 + 8(${innerC})^3`;
+          const f1 = stringifyPoly({ [x]: na, [y]: -nb }, [x, y]);
+          const f2 = stringifyPoly({ [y]: nb, [z]: -nc }, [y, z]);
+          const f3 = stringifyPoly({ [z]: nc, [x]: -na }, [z, x]);
+          return { question: qFull, answer: formatFactors([f1, f2, f3], '24') };
+        } else {
+          const A2 = `${fmtTerm(a, x, true)}${fmtTerm(-b, y)}`;
+          const B2 = `${fmtTerm(b, y, true)}${fmtTerm(-c, z)}`;
+          const C2 = `${fmtTerm(c, z, true)}${fmtTerm(-a, x)}`;
+          const q = `(${A2})^3 + (${B2})^3 + (${C2})^3`;
+          const f1 = stringifyPoly({ [x]: a, [y]: -b }, [x, y]);
+          const f2 = stringifyPoly({ [y]: b, [z]: -c }, [y, z]);
+          const f3 = stringifyPoly({ [z]: c, [x]: -a }, [z, x]);
+          return { question: q, answer: formatFactors([f1, f2, f3], '3') };
+        }
 
       } else {
         // (ax)^3+(by)^3+(cz)^3-3abcxyz の係数違いで、1変数に係数をかけたパターン
