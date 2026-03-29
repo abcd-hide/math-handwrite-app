@@ -3,6 +3,7 @@ import { Trash2, CheckCircle2, XCircle, Trophy, Settings, PenTool, Eraser, Pen, 
 import { motion, AnimatePresence } from 'framer-motion';
 import * as math from 'mathjs';
 import { InlineMath, BlockMath } from 'react-katex';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import MathCanvas from './components/MathCanvas';
 import './index.css';
@@ -86,6 +87,28 @@ const areEquivalent = (inputLatex, targetMath, isEquation = false) => {
     console.warn('Math comparison failed', e);
     return false;
   }
+};
+
+// Robust KaTeX display component that renders directly to DOM
+const KatexDisplay = ({ math, block = false, settings = {} }) => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (containerRef.current && math) {
+      try {
+        katex.render(math, containerRef.current, {
+          displayMode: block,
+          throwOnError: false,
+          ...settings
+        });
+      } catch (err) {
+        console.error('KaTeX rendering error:', err);
+        containerRef.current.textContent = math;
+      }
+    }
+  }, [math, block, settings]);
+
+  return <span ref={containerRef} />;
 };
 
 function App() {
@@ -468,9 +491,9 @@ function App() {
       </header>
 
       <main className="problem-card">
-        <div className="problem-label">{currentProblem.type}</div>
+        <div className="problem-label">{currentProblem.type === '和を求めよ' ? '和を求めよ (Ver3)' : currentProblem.type}</div>
         <div className="problem-text">
-           <BlockMath math={currentProblem.question} />
+           <KatexDisplay math={currentProblem.question} block={true} />
         </div>
       </main>
 
@@ -507,7 +530,7 @@ function App() {
           {showSolution && screen === 'practice' && (
             <div style={{ position: 'absolute', bottom: 10, right: 15, background: 'rgba(0,100,50,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid #00FF99', color: '#00FF99', fontWeight: 'bold', zIndex: 20, display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span>正解:</span> 
-              <span className="answer-math-block"><BlockMath math={currentProblem.answer} /></span>
+              <span className="answer-math-block"><KatexDisplay math={currentProblem.answer} block={true} /></span>
             </div>
           )}
           {/* 1 second O/X feedback overlay for Test Mode inside answer area */}
@@ -521,7 +544,7 @@ function App() {
                 {testFeedback === 'incorrect' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'absolute', bottom: '10px', right: '15px', background: 'rgba(0,0,0,0.8)', padding: '5px 15px', borderRadius: '8px', border: '1px solid var(--error-color)', color: 'white', fontWeight: 'bold', zIndex: 51, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span>正解:</span>
-                    <span className="answer-math-block"><BlockMath math={currentProblem.answer} /></span>
+                    <span className="answer-math-block"><KatexDisplay math={currentProblem.answer} block={true} /></span>
                   </motion.div>
                 )}
               </>
@@ -533,7 +556,7 @@ function App() {
       <footer className="footer">
         <button className="btn btn-clear" onClick={handleClear}><Trash2 size={20} /> 全クリア</button>
         <div className="stats-card" style={{ flex: 1, justifyContent: 'center', fontSize: '18px', border: '1px dashed var(--accent-color)', minWidth: '200px', height: '50px' }}>
-           {answerInput ? <InlineMath math={cleanLatexForDisplay(answerInput)} /> : <span style={{ opacity: 0.5, fontSize: '14px' }}>解答プレビュー</span>}
+           {answerInput ? <KatexDisplay math={cleanLatexForDisplay(answerInput)} /> : <span style={{ opacity: 0.5, fontSize: '14px' }}>解答プレビュー</span>}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {screen === 'practice' && (
