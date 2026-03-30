@@ -240,8 +240,21 @@ function App() {
     }
   }, [timeSeconds, screen, isTimerActive]);
 
-  const refreshProblem = (cat, lvl) => {
-    const prob = generateProblem(cat, lvl);
+  const refreshProblem = (cat, lvl, index) => {
+    const idx = index !== undefined ? index : currentIdx;
+    let forcedType, forcedLimit;
+    
+    // For sequence_sum, show each pattern with limit 'n' first
+    if (cat === 'sequence_sum') {
+      const counts = { 1: 2, 2: 4, 3: 4, 4: 4, 5: 6, 6: 2, 7: 4, 8: 4 };
+      const maxPhase1 = counts[lvl] || 4;
+      if (idx < maxPhase1) {
+        forcedType = idx + 1;
+        forcedLimit = 'n';
+      }
+    }
+
+    const prob = generateProblem(cat, lvl, forcedType, forcedLimit);
     if (prob) {
       setCurrentProblem({
         ...prob,
@@ -262,9 +275,11 @@ function App() {
     refreshProblem(category, startLvl);
 
     if (selectedMode === 'test') {
-      let initTime = 60;
-      if ([3, 4, 5, 7, 8].includes(startLvl)) initTime = 120;
-      if ([6, 9, 10, 11, 12].includes(startLvl)) initTime = 300;
+      let initTime = 300; // Default 5 min
+      if (startLvl === 1) initTime = 180; // 3 min
+      else if ([2, 6, 7].includes(startLvl)) initTime = 480; // 8 min
+      else if (startLvl === 3) initTime = 360; // 6 min
+      else if ([4, 5, 8].includes(startLvl)) initTime = 300; // 5 min
       setTimeSeconds(initTime);
     } else {
       setTimeSeconds(0);
@@ -314,8 +329,9 @@ function App() {
     setIsCorrect(null);
     setShowSolution(false);
     handleClear();
-    setCurrentIdx(prev => prev + 1);
-    refreshProblem(category, level);
+    const nextIdx = currentIdx + 1;
+    setCurrentIdx(nextIdx);
+    refreshProblem(category, level, nextIdx);
   };
 
   const changeLevel = (newLvl) => {
@@ -554,7 +570,7 @@ function App() {
       </header>
 
       <main className="problem-card">
-        <div className="problem-label">{currentProblem.type === '和を求めよ' ? '和を求めよ (Ver3)' : currentProblem.type}</div>
+        <div className="problem-label">{currentProblem.type}</div>
         <div className="problem-text">
            <KatexDisplay math={currentProblem.question} block={true} />
         </div>

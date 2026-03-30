@@ -967,10 +967,10 @@ export const problemGenerators = {
   sequence_sum: sequenceSumGenerators
 };
 
-export const generateProblem = (category, level) => {
+export const generateProblem = (category, level, forcedType, forcedLimit) => {
   const levelKey = `level${level}`;
   if (problemGenerators[category] && problemGenerators[category][levelKey]) {
-    const prob = problemGenerators[category][levelKey]();
+    const prob = problemGenerators[category][levelKey](forcedType, forcedLimit);
     return {
       type: category === 'sequence_sum' ? '和を求めよ' : '因数分解せよ',
       category,

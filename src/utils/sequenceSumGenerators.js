@@ -31,7 +31,11 @@ const simplifyFactor = (a, b, varName = 'n') => {
   return `${common}\\left( ${inner} \\right)`;
 };
 
-const getUpperLimit = () => {
+const getUpperLimit = (fixedLimit = null) => {
+    if (fixedLimit === 'n') return { tex: 'n', expr: 'n', n: 'n', np1: 'n+1', np2: 'n+2', np3: 'n+3', nm1: 'n-1' };
+    if (fixedLimit === 'n-1') return { tex: 'n-1', expr: 'n-1', n: 'n-1', np1: 'n', np2: 'n+1', np3: 'n+2', nm1: 'n-2' };
+    if (fixedLimit === 'n+1') return { tex: 'n+1', expr: 'n+1', n: 'n+1', np1: 'n+2', np2: 'n+3', np3: 'n+4', nm1: 'n' };
+    
     const r = Math.random();
     if (r < 0.34) return { tex: 'n', expr: 'n', n: 'n', np1: 'n+1', np2: 'n+2', np3: 'n+3', nm1: 'n-1' };
     if (r < 0.67) return { tex: 'n-1', expr: 'n-1', n: 'n-1', np1: 'n', np2: 'n+1', np3: 'n+2', nm1: 'n-2' };
@@ -135,9 +139,9 @@ const fmtPolyK = (coeffs) => fmtPolynomial(coeffs, 'k');
 
 export const sequenceSumGenerators = {
   // レベル1: 等差数列・等比数列の和
-  level1: () => {
-    const isArithmetic = Math.random() < 0.5;
-    const N = getUpperLimit();
+  level1: (forcedType, forcedLimit) => {
+    const isArithmetic = forcedType !== undefined ? (forcedType === 1) : Math.random() < 0.5;
+    const N = getUpperLimit(forcedLimit);
     const nMath = N.expr; // Use parenthetical form for linear/poly terms
     const nTex = N.tex;   // Use linear form ONLY for exponents
 
@@ -192,9 +196,9 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level2: () => {
-    const type = getRandomInt(1, 4);
-    const N = getUpperLimit();
+  level2: (forcedType, forcedLimit) => {
+    const type = forcedType || getRandomInt(1, 4);
+    const N = getUpperLimit(forcedLimit);
     const nMath = N.expr;
     const nTex = N.tex;
     if (type === 1) { // Cubic Polynomial ak^3 + bk^2 + ck + d
@@ -290,9 +294,9 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level3: () => {
-    const type = getRandomInt(1, 4);
-    const N = getUpperLimit();
+  level3: (forcedType, forcedLimit) => {
+    const type = forcedType || getRandomInt(1, 4);
+    const N = getUpperLimit(forcedLimit);
     const nMath = N.expr;
     const nTex = N.tex;
     
@@ -347,11 +351,11 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level4: () => {
-    const N = getUpperLimit();
+  level4: (forcedType, forcedLimit) => {
+    const N = getUpperLimit(forcedLimit);
     const nMath = N.expr;
     const nTex = N.tex;
-    const type = getRandomInt(1, 4);
+    const type = forcedType || getRandomInt(1, 4);
     if (type === 1) { // k(k+1)(k+2)
       const q = texSigma(String.raw`k${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}`, nTex);
       return { question: q, answer: String.raw`\frac{1}{4}${fmtProduct([nMath, N.np1, N.np2, N.np3])}` };
@@ -415,11 +419,11 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level5: () => {
-    const N = getUpperLimit();
+  level5: (forcedType, forcedLimit) => {
+    const N = getUpperLimit(forcedLimit);
     const nMath = N.expr;
     const nTex = N.tex;
-    const type = getRandomInt(1, 6);
+    const type = forcedType || getRandomInt(1, 6);
     if (type === 1) { // 1/k(k+1)
       const q = texSigma(String.raw`\frac{1}{k\left( k+1 \right)}`, nTex);
       return { question: q, answer: String.raw`\frac{${N.n}}{${N.np1}}` };
@@ -450,10 +454,10 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level6: () => {
-    const N = getUpperLimit();
+  level6: (forcedType, forcedLimit) => {
+    const N = getUpperLimit(forcedLimit);
     const nTex = N.tex;
-    const r = Math.random() < 0.5 ? 2 : 3;
+    const r = forcedType !== undefined ? (forcedType === 1 ? 2 : 3) : (Math.random() < 0.5 ? 2 : 3);
     const q = texSigma(String.raw`k \cdot ${r}^{k}`, nTex);
     if (r === 2) {
         // N=n: 2^{n+1}(n-1)+2
@@ -472,11 +476,11 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level7: () => {
-    const N = getUpperLimit();
+  level7: (forcedType, forcedLimit) => {
+    const N = getUpperLimit(forcedLimit);
     const nTex = N.tex;
     const nMath = N.expr;
-    const type = getRandomInt(1, 4);
+    const type = forcedType || getRandomInt(1, 4);
 
     if (type === 1) { // sum k^2 / (2k-1)(2k+1) = N(N+1) / 2(2N+1)
       const q = texSigma(String.raw`\frac{k^2}{\left( 2k-1 \right)\left( 2k+1 \right)}`, nTex);
@@ -501,9 +505,9 @@ export const sequenceSumGenerators = {
     }
   },
 
-  level8: () => {
-    const type = getRandomInt(1, 4); // Added factorial type
-    const N = getUpperLimit();
+  level8: (forcedType, forcedLimit) => {
+    const type = forcedType || getRandomInt(1, 4); // Added factorial type
+    const N = getUpperLimit(forcedLimit);
     const nTex = N.tex;
     if (type === 1) {
       const q = texSigma(String.raw`\frac{1}{\sqrt{k+1} + \sqrt{k}}`, nTex);
@@ -519,5 +523,15 @@ export const sequenceSumGenerators = {
       const q = texSigma(String.raw`\frac{1}{\sqrt{k+2} + \sqrt{k+1}}`, nTex);
       return { question: q, answer: String.raw`\sqrt{${N.np2}} - \sqrt{2}` };
     }
+  },
+  problemCounts: {
+    level1: 2,
+    level2: 4,
+    level3: 4,
+    level4: 4,
+    level5: 6,
+    level6: 2,
+    level7: 4,
+    level8: 4
   }
 };
