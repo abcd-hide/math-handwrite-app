@@ -57,6 +57,49 @@ const fmtFrac = (num, den) => {
   return String.raw`${sign}\frac{${Math.abs(n)}}{${Math.abs(d)}}`;
 };
 
+/**
+ * Formats a polynomial an^4 + bn^3 + cn^2 + dn + e as a clean LaTeX string.
+ * coeffs: [e, d, c, b, a] where a is n^4 coefficient
+ */
+const fmtPolynomial = (coeffs) => {
+  let res = '';
+  const degrees = coeffs.length - 1;
+  for (let i = degrees; i >= 0; i--) {
+    let c = coeffs[i];
+    if (c === 0) continue;
+    
+    // Check if c is fractional (simplified as it comes from sum formulas)
+    let cStr = '';
+    if (Number.isInteger(c)) {
+      const absC = Math.abs(c);
+      if (absC === 1 && i > 0) {
+        cStr = (c < 0 ? '-' : (res === '' ? '' : '+'));
+      } else {
+        const sign = (c < 0 ? '-' : (res === '' ? '' : '+'));
+        cStr = sign + absC;
+      }
+    } else {
+      // Handle rational coefficients (e.g., from mathjs or manual)
+      const sign = (c < 0 ? '-' : (res === '' ? '' : '+'));
+      // Simplified for common sum denominators (2, 3, 4, 6, 12, 24)
+      const absC = Math.abs(c);
+      const eps = 1e-10;
+      let frac = '';
+      for (let d = 1; d <= 24; d++) {
+        if (Math.abs(absC * d - Math.round(absC * d)) < eps) {
+          frac = fmtFrac(Math.round(absC * d), d);
+          break;
+        }
+      }
+      cStr = sign + (frac || absC.toFixed(2));
+    }
+
+    const term = (i === 0 ? '' : (i === 1 ? 'n' : `n^{${i}}`));
+    res += cStr + term;
+  }
+  return res || '0';
+};
+
 export const sequenceSumGenerators = {
   // レベル1: 等差数列・等比数列の和
   level1: () => {
@@ -77,27 +120,24 @@ export const sequenceSumGenerators = {
       const exprTex = (a !== 0 && b !== 0) ? wrapMath(term) : term;
       const q = texSigma(exprTex, nTex);
       
-      // S = N/2 * (a(N+1) + 2b)
-      // If N=n: n(an + a + 2b)/2
-      // If N=n-1: (n-1)(an - a + a + 2b)/2 = (n-1)(an + 2b)/2
-      // If N=n+1: (n+1)(an + a + a + 2b)/2 = (n+1)(an + 2a + 2b)/2
-      let inner = '';
-      if (nTex === 'n') {
-        const c1 = a;
-        const c0 = a + 2 * b;
-        inner = `${c1 === 1 ? 'n' : (c1 === -1 ? '-n' : (c1 === 0 ? '' : c1 + 'n'))}${c0 > 0 ? (c1 !== 0 ? '+' : '') + c0 : (c0 < 0 ? c0 : (c1 === 0 ? '0' : ''))}`;
-      } else if (nTex === 'n-1') {
-        const c1 = a;
-        const c0 = 2 * b;
-        inner = `${c1 === 1 ? 'n' : (c1 === -1 ? '-n' : (c1 === 0 ? '' : c1 + 'n'))}${c0 > 0 ? (c1 !== 0 ? '+' : '') + c0 : (c0 < 0 ? c0 : (c1 === 0 ? '0' : ''))}`;
-      } else { // n+1
-        const c1 = a;
-        const c0 = 2 * a + 2 * b;
-        inner = `${c1 === 1 ? 'n' : (c1 === -1 ? '-n' : (c1 === 0 ? '' : c1 + 'n'))}${c0 > 0 ? (c1 !== 0 ? '+' : '') + c0 : (c0 < 0 ? c0 : (c1 === 0 ? '0' : ''))}`;
-      }
+      // S = N/2 * (a(N+1) + 2b) = a/2 N^2 + (a/2 + b) N
+      // Coefficients of n^2, n, 1
+      const C2 = a/2;
+      const C1 = a/2 + b;
       
-      const ans = String.raw`\frac{${fmtProduct([nMath, inner])}}{2}`;
-      return { question: q, answer: ans };
+      const expandLimitAtN = (limitTex, c2, c1) => {
+          if (limitTex === 'n') return [0, c1, c2];
+          const x = (limitTex === 'n-1' ? -1 : 1);
+          const res = [0, 0, 0];
+          // c2(n+x)^2 + c1(n+x) = c2(n^2 + 2xn + x^2) + c1(n + x)
+          // = c2 n^2 + (2c2x + c1) n + (c2x^2 + c1x)
+          res[2] = c2;
+          res[1] = 2*c2*x + c1;
+          res[0] = c2*x*x + c1*x;
+          return res;
+      };
+      
+      return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C2, C1)) };
     } else {
       let a;
       while (true) { a = getRandomInt(-3, 3); if (a !== 0 && Math.abs(a) !== 1) break; }
@@ -124,83 +164,85 @@ export const sequenceSumGenerators = {
     const N = getUpperLimit();
     const nMath = N.expr;
     const nTex = N.tex;
-        if (type === 1) { // Cubic Polynomial
-      let a, b, c, d;
-      while (true) {
-        a = getRandomNonZeroInt(-2, 2) * 2;
-        b = getRandomInt(-2, 2) * 3;
-        c = getRandomInt(-2, 2) * 2;
-        d = getRandomInt(-3, 3);
-        if (a !== 0) break;
-      }
+    if (type === 1) { // Cubic Polynomial ak^3 + bk^2 + ck + d
+      let a = getRandomNonZeroInt(-2, 2) * 2;
+      let b = getRandomInt(-2, 2) * 3;
+      let c = getRandomInt(-2, 2) * 2;
+      let d = getRandomInt(-3, 3);
       
-      let term = '';
-      const parts = [[a, 'k^3'], [b, 'k^2'], [c, 'k'], [d, '']];
-      parts.forEach(([val, k]) => {
-        if (val === 0) return;
-        const sign = (val > 0 && term !== '') ? '+' : '';
-        const coeff = (val === 1 && k !== '' ? '' : (val === -1 && k !== '' ? '-' : val));
-        term += `${sign}${coeff}${k}`;
-      });
-      const q = texSigma(wrapMath(term), nTex);
+      const q = texSigma(wrapMath(fmtPolynomial([d, c, b, a]).replace(/n/g, 'k')), nTex);
       
-      let ans = '';
-      // S = 1/4 aN^2(N+1)^2 + 1/6 bN(N+1)(2N+1) + 1/2 cN(N+1) + dN
-      const fA = fmtFrac(a, 4);
-      if (fA !== '0') ans += fmtProduct([fA, nMath + '^2', wrapMath(N.np1) + '^2']);
+      // Coefficients of n^4, n^3, n^2, n, 1
+      // S(N) = a/4 N^4 + (a/2+b/3)N^3 + (a/4+b/2+c/2)N^2 + (b/6+c/2+d)N
+      const C = [0, b/6+c/2+d, a/4+b/2+c/2, a/2+b/3, a/4];
       
-      const fB = fmtFrac(b, 6);
-      if (fB !== '0') {
-          const sign = (fB.startsWith('-') || ans === '') ? '' : '+';
-          const n2v = (nTex === 'n' ? '2n+1' : (nTex === 'n-1' ? '2n-1' : '2n+3'));
-          ans += sign + fmtProduct([fB, nMath, N.np1, n2v]);
-      }
-      const fC = fmtFrac(c, 2);
-      if (fC !== '0') {
-          const sign = (fC.startsWith('-') || ans === '') ? '' : '+';
-          ans += sign + fmtProduct([fC, nMath, N.np1]);
-      }
-      if (d !== 0) {
-          const sign = (d > 0 && ans !== '') ? '+' : (d < 0 ? '-' : '');
-          const coeff = (Math.abs(d) === 1 ? '' : Math.abs(d));
-          ans += sign + coeff + nMath;
-      }
-      return { question: q, answer: ans };
+      const expandLimitAtN = (limitTex, CC) => {
+          if (limitTex === 'n') return CC;
+          const x = (limitTex === 'n-1' ? -1 : 1);
+          const res = [0, 0, 0, 0, 0];
+          // res += CC[j] * (n+x)^j
+          for (let j = 0; j <= 4; j++) {
+            if (CC[j] === 0) continue;
+            // (n+x)^j expansion
+            if (j === 0) res[0] += CC[j];
+            if (j === 1) { res[1] += CC[j]; res[0] += CC[j]*x; }
+            if (j === 2) { res[2] += CC[j]; res[1] += CC[j]*2*x; res[0] += CC[j]*x*x; }
+            if (j === 3) { res[3] += CC[j]; res[2] += CC[j]*3*x; res[1] += CC[j]*3*x*x; res[0] += CC[j]*x*x*x; }
+            if (j === 4) { res[4] += CC[j]; res[3] += CC[j]*4*x; res[2] += CC[j]*6*x*x; res[1] += CC[j]*4*x*x*x; res[0] += CC[j]*x*x*x*x; }
+          }
+          return res;
+      };
+      
+      return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C)) };
     } else if (type === 2) { // (ak+b)(ck+d) product
       let a = getRandomNonZeroInt(-2, 2), b = getRandomInt(-3, 3);
       let c = getRandomNonZeroInt(-2, 2), d = getRandomInt(-3, 3);
       const tt1 = `${a===1?'k':(a===-1?'-k':a+'k')}${b>0?'+'+b:(b<0?b:'')}`;
       const tt2 = `${c===1?'k':(c===-1?'-k':c+'k')}${d>0?'+'+d:(d<0?d:'')}`;
       const q = texSigma(String.raw`${wrapMath(tt1)} ${wrapMath(tt2)}`, nTex);
+      
+      // (ak+b)(ck+d) = ack^2 + (ad+bc)k + bd
       const ac = a * c, adbc = a * d + b * c, bd = b * d;
-      let ans = '';
-      const n2v = (nTex === 'n' ? '2n+1' : (nTex === 'n-1' ? '2n-1' : '2n+3'));
-      if (ac !== 0) {
-          ans += fmtProduct([fmtFrac(ac, 6), nMath, N.np1, n2v]);
-      }
-      if (adbc !== 0) {
-          const f = fmtFrac(adbc, 2);
-          const sign = (f.startsWith('-') || ans === '') ? '' : '+';
-          ans += sign + fmtProduct([f, nMath, N.np1]);
-      }
-      if (bd !== 0) {
-          const sign = (bd > 0 && ans !== '') ? '+' : (bd < 0 ? '-' : '');
-          const coeff = (Math.abs(bd) === 1 ? '' : Math.abs(bd));
-          ans += sign + coeff + nMath;
-      }
-      return { question: q, answer: ans };
+      // S2 coefficients: n^3:1/3, n^2:1/2, n^1:1/6
+      const C = [0, adbc/2 + bd + ac/6, ac/2 + adbc/2, ac/3];
+      
+      const expandLimitAtN = (limitTex, CC) => {
+          if (limitTex === 'n') return CC;
+          const x = (limitTex === 'n-1' ? -1 : 1);
+          const res = [0, 0, 0, 0];
+          for (let j = 0; j <= 3; j++) {
+            if (CC[j] === 0) continue;
+            if (j === 0) res[0] += CC[j];
+            if (j === 1) { res[1] += CC[j]; res[0] += CC[j]*x; }
+            if (j === 2) { res[2] += CC[j]; res[1] += CC[j]*2*x; res[0] += CC[j]*x*x; }
+            if (j === 3) { res[3] += CC[j]; res[2] += CC[j]*3*x; res[1] += CC[j]*3*x*x; res[0] += CC[j]*x*x*x; }
+          }
+          return res;
+      };
+      
+      return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C)) };
     } else if (type === 3) { // (k+a)^3
       const aVal = getRandomNonZeroInt(-3, 3);
       const q = texSigma(String.raw`${wrapMath(String.raw`k${aVal>0?'+'+aVal:aVal}`)}^3`, nTex);
-      // sum_{k=1}^N (k+aVal)^3 = S(N+aVal) - S(aVal) where S(X) = X^2(X+1)^2/4
-      const CVal = aVal * aVal * (aVal + 1) * (aVal + 1);
-      const L1 = (nTex==='n'?aVal:(nTex==='n-1'?aVal-1:aVal+1));
-      const L2 = (nTex==='n'?aVal+1:(nTex==='n-1'?aVal:aVal+2));
-      const t1 = `n${L1===0?'':(L1>0?'+'+L1:L1)}`;
-      const t2 = `n${L2===0?'':(L2>0?'+'+L2:L2)}`;
-      const term1 = fmtProduct([wrapMath(t1) + '^2', wrapMath(t2) + '^2']);
-      const ans = String.raw`\frac{1}{4} \left\{ ${term1} ${CVal === 0 ? '' : (CVal > 0 ? '-' + CVal : '+' + Math.abs(CVal))} \right\}`;
-      return { question: q, answer: ans };
+      // (k+a)^3 = k^3 + 3ak^2 + 3a^2k + a^3
+      const a = 1, b = 3*aVal, c = 3*aVal*aVal, d = aVal*aVal*aVal;
+      const C = [0, b/6+c/2+d, a/4+b/2+c/2, a/2+b/3, a/4];
+      
+      const expandLimitAtN = (limitTex, CC) => {
+          if (limitTex === 'n') return CC;
+          const x = (limitTex === 'n-1' ? -1 : 1);
+          const res = [0, 0, 0, 0, 0];
+          for (let j = 0; j <= 4; j++) {
+            if (CC[j] === 0 || isNaN(CC[j])) continue;
+            if (j === 0) res[0] += CC[j];
+            if (j === 1) { res[1] += CC[j]; res[0] += CC[j]*x; }
+            if (j === 2) { res[2] += CC[j]; res[1] += CC[j]*2*x; res[0] += CC[j]*x*x; }
+            if (j === 3) { res[3] += CC[j]; res[2] += CC[j]*3*x; res[1] += CC[j]*3*x*x; res[0] += CC[j]*x*x*x; }
+            if (j === 4) { res[4] += CC[j]; res[3] += CC[j]*4*x; res[2] += CC[j]*6*x*x; res[1] += CC[j]*4*x*x*x; res[0] += CC[j]*x*x*x*x; }
+          }
+          return res;
+      };
+      return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C)) };
     } else {
       const sub = getRandomInt(1, 2);
       if (sub === 1) { // sum k(k+1) = n(n+1)(n+2)/3
@@ -209,7 +251,7 @@ export const sequenceSumGenerators = {
         return { question: q, answer: ans };
       } else { // sum k(k+1)(k+2) = n(n+1)(n+2)(n+3)/4
         const q = texSigma(String.raw`k${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}`, nTex);
-        const ans = String.raw`\frac{1}{4}${fmtProduct([nMath, N.np1, N.np2, N.np3])}`;
+        const ans = String.raw`\frac{${fmtProduct([nMath, N.np1, N.np2, N.np3])}}{4}`;
         return { question: q, answer: ans };
       }
     }
@@ -257,13 +299,13 @@ export const sequenceSumGenerators = {
       } else if (nTex === 'n-1') {
           const coeff = fmtFrac(2 + a, 2);
           const cstr = (coeff === '1' ? '' : (coeff === '-1' ? '-' : coeff));
-          const ans = String.raw`${cstr}n${wrapMath(String.raw`n-1`)}`;
+          const ans = String.raw`${cstr}n\left(n-1\right)`;
           return { question: q, answer: ans };
       } else { // n+1
           const bV = (2 + a);
           const cV = 2 * a;
           const inner = `${bV === 1 ? 'n' : (bV === -1 ? '-n' : (bV === 0 ? '' : bV + 'n'))}${cV > 0 ? (bV !== 0 ? '+' : '') + cV : (cV < 0 ? cV : (bV === 0 ? '0' : ''))}`;
-          return { question: q, answer: String.raw`\frac{${fmtProduct([N.n, inner])}}{2}` }; // USE N.n (already fixed in prev turn, but verifying)
+          return { question: q, answer: String.raw`\frac{\left(n+1\right)\left(${inner}\right)}{2}` };
       }
     } else { // sum_k sum_{l=1}^{k-1} l
       const q = String.raw`\sum_{k=1}^{${nTex}}\left(\sum_{\ell=1}^{k-1}\ell\right)`;
@@ -283,20 +325,59 @@ export const sequenceSumGenerators = {
     } else if (type === 2) { // k(k^2-1) = (k-1)k(k+1)
       const q = texSigma(String.raw`k${wrapMath(String.raw`k^2-1`)}`, nTex);
       return { question: q, answer: String.raw`\frac{1}{4}${fmtProduct([N.nm1, nMath, N.np1, N.np2])}` };
-    } else if (type === 3) { // (2k-1)(2k+1)
+    } else if (type === 3) { // (2k-1)(2k+1) => N(4N^2+6N-1)/3 = 4/3 N^3 + 2N^2 - 1/3 N
       const q = texSigma(String.raw`${wrapMath(String.raw`2k-1`)}${wrapMath(String.raw`2k+1`)}`, nTex);
-      const innerStr = (nTex === 'n' ? '4n^2+6n-1' : (nTex === 'n-1' ? '4n^2-6n+1' : '4n^2+18n+11'));
-      return { question: q, answer: String.raw`\frac{1}{3}${fmtProduct([nMath, innerStr])}` };
+      const C = [0, -1/3, 2, 4/3];
+      const expandLimitAtN = (limitTex, CC) => {
+          if (limitTex === 'n') return CC;
+          const x = (limitTex === 'n-1' ? -1 : 1);
+          const res = [0, 0, 0, 0];
+          for (let j = 0; j <= 3; j++) {
+            if (CC[j] === 0) continue;
+            if (j === 0) res[0] += CC[j];
+            if (j === 1) { res[1] += CC[j]; res[0] += CC[j]*x; }
+            if (j === 2) { res[2] += CC[j]; res[1] += CC[j]*2*x; res[0] += CC[j]*x*x; }
+            if (j === 3) { res[3] += CC[j]; res[2] += CC[j]*3*x; res[1] += CC[j]*3*x*x; res[0] += CC[j]*x*x*x; }
+          }
+          return res;
+      };
+      return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C)) };
     } else { // (3k-2)(3k+1) or (3k-1)(3k+2)
       const sub = getRandomInt(1, 2);
-      if (sub === 1) {
+      if (sub === 1) { // (3k-2)(3k+1) => N(3N^2+3N-2) = 3N^3 + 3N^2 - 2N
         const q = texSigma(String.raw`${wrapMath(String.raw`3k-2`)}${wrapMath(String.raw`3k+1`)}`, nTex);
-        const inner = (nTex === 'n' ? '3n^2+3n-2' : (nTex === 'n-1' ? '3n^2-3n-2' : '3n^2+9n+4'));
-        return { question: q, answer: fmtProduct([nMath, inner]) };
-      } else {
+        const C = [0, -2, 3, 3];
+        const expandLimitAtN = (limitTex, CC) => {
+            if (limitTex === 'n') return CC;
+            const x = (limitTex === 'n-1' ? -1 : 1);
+            const res = [0, 0, 0, 0];
+            for (let j = 0; j <= 3; j++) {
+              if (CC[j] === 0) continue;
+              if (j === 0) res[0] += CC[j];
+              if (j === 1) { res[1] += CC[j]; res[0] += CC[j]*x; }
+              if (j === 2) { res[2] += CC[j]; res[1] += CC[j]*2*x; res[0] += CC[j]*x*x; }
+              if (j === 3) { res[3] += CC[j]; res[2] += CC[j]*3*x; res[1] += CC[j]*3*x*x; res[0] += CC[j]*x*x*x; }
+            }
+            return res;
+        };
+        return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C)) };
+      } else { // (3k-1)(3k+2) => N(3N^2+6N+1) = 3N^3 + 6N^2 + N
         const q = texSigma(String.raw`${wrapMath(String.raw`3k-1`)}${wrapMath(String.raw`3k+2`)}`, nTex);
-        const inner = (nTex === 'n' ? '3n^2+6n+1' : (nTex === 'n-1' ? '3n^2-2' : '3n^2+12n+10'));
-        return { question: q, answer: fmtProduct([nMath, inner]) };
+        const C = [0, 1, 6, 3];
+        const expandLimitAtN = (limitTex, CC) => {
+            if (limitTex === 'n') return CC;
+            const x = (limitTex === 'n-1' ? -1 : 1);
+            const res = [0, 0, 0, 0];
+            for (let j = 0; j <= 3; j++) {
+              if (CC[j] === 0) continue;
+              if (j === 0) res[0] += CC[j];
+              if (j === 1) { res[1] += CC[j]; res[0] += CC[j]*x; }
+              if (j === 2) { res[2] += CC[j]; res[1] += CC[j]*2*x; res[0] += CC[j]*x*x; }
+              if (j === 3) { res[3] += CC[j]; res[2] += CC[j]*3*x; res[1] += CC[j]*3*x*x; res[0] += CC[j]*x*x*x; }
+            }
+            return res;
+        };
+        return { question: q, answer: fmtPolynomial(expandLimitAtN(nTex, C)) };
       }
     }
   },
@@ -307,11 +388,11 @@ export const sequenceSumGenerators = {
     const nTex = N.tex;
     const type = getRandomInt(1, 6);
     if (type === 1) { // 1/k(k+1)
-      const q = texSigma(String.raw`\frac{1}{k${wrapMath(String.raw`k+1`)}}`, nTex);
+      const q = texSigma(String.raw`\frac{1}{k\left( k+1 \right)}`, nTex);
       return { question: q, answer: String.raw`\frac{${N.n}}{${N.np1}}` };
     } else if (type === 2) { // 1/(k+1)(k+2)
-      const q = texSigma(String.raw`\frac{1}{${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}}`, nTex);
-      return { question: q, answer: String.raw`\frac{${N.n}}{2${wrapMath(N.np2)}}` };
+      const q = texSigma(String.raw`\frac{1}{\left( k+1 \right)\left( k+2 \right)}`, nTex);
+      return { question: q, answer: String.raw`\frac{${N.n}}{2\left( ${N.np2} \right)}` };
     } else if (type === 3) { // 1/k(k+1)(k+2)
       const q = texSigma(String.raw`\frac{1}{k${wrapMath(String.raw`k+1`)}${wrapMath(String.raw`k+2`)}}`, nTex);
       return { question: q, answer: String.raw`\frac{${fmtProduct([N.n, N.np3])}}{4${fmtProduct([N.np1, N.np2])}}` };
@@ -339,16 +420,34 @@ export const sequenceSumGenerators = {
     const nTex = N.tex;
     const r = Math.random() < 0.5 ? 2 : 3;
     const q = texSigma(String.raw`k \cdot ${r}^{k}`, nTex);
-    const den = (1 - r) * (1 - r);
-    const ans = String.raw`\frac{${fmtProduct([r, '-', wrapMath(N.np1), String.raw`${r}^{${N.np1}}`, '+', wrapMath(N.n), String.raw`${r}^{${N.np2}}`])}}{${den}}`;
-    return { question: q, answer: ans };
+    if (r === 2) {
+        // N=n: 2^{n+1}(n-1)+2
+        // N=n-1: 2^n(n-2)+2
+        // N=n+1: 2^{n+2}n+2
+        if (nTex === 'n') return { question: q, answer: String.raw`2^{n+1}\left(n-1\right)+2` };
+        if (nTex === 'n-1') return { question: q, answer: String.raw`2^{n}\left(n-2\right)+2` };
+        return { question: q, answer: String.raw`2^{n+2}n+2` };
+    } else { // r=3
+        // N=n: 3/4 (3^n(2n-1)+1)
+        // N=n-1: 3/4 (3^{n-1}(2n-3)+1)
+        // N=n+1: 3/4 (3^{n+1}(2n+1)+1)
+        if (nTex === 'n') return { question: q, answer: String.raw`\frac{3\left\{3^{n}\left(2n-1\right)+1\right\}}{4}` };
+        if (nTex === 'n-1') return { question: q, answer: String.raw`\frac{3\left\{3^{n-1}\left(2n-3\right)+1\right\}}{4}` };
+        return { question: q, answer: String.raw`\frac{3\left\{3^{n+1}\left(2n+1\right)+1\right\}}{4}` };
+    }
   },
 
   level7: () => {
     const N = getUpperLimit();
     const nTex = N.tex;
-    const q = texSigma(String.raw`\frac{2k+1}{k^2 ${wrapMath(String.raw`k+1`)}^2}`, nTex);
-    return { question: q, answer: String.raw`\frac{${wrapMath(N.n)}${wrapMath(N.np2)}}{${wrapMath(N.np1)}^2}` };
+    const q = texSigma(String.raw`\frac{2k+1}{k^2 \left( k+1 \right)^2}`, nTex);
+    // N(N+2)/(N+1)^2
+    // n(n+2)/(n+1)^2
+    // (n-1)(n+1)/n^2
+    // (n+1)(n+3)/(n+2)^2
+    if (nTex === 'n') return { question: q, answer: String.raw`\frac{n\left( n+2 \right)}{\left( n+1 \right)^2}` };
+    if (nTex === 'n-1') return { question: q, answer: String.raw`\frac{\left( n-1 \right)\left( n+1 \right)}{n^2}` };
+    return { question: q, answer: String.raw`\frac{\left( n+1 \right)\left( n+3 \right)}{\left( n+2 \right)^2}` };
   },
 
   level8: () => {
