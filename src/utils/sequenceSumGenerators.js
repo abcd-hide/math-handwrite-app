@@ -7,6 +7,30 @@ const getRandomNonZeroInt = (min, max) => {
   return res;
 };
 
+const gcd = (a, b) => b === 0 ? Math.abs(a) : gcd(b, Math.round(a % b));
+
+const simplifyFactor = (a, b, varName = 'n') => {
+  if (a === 0 && b === 0) return '0';
+  if (a === 0) return `${b}`;
+  if (b === 0) return (a === 1 ? varName : (a === -1 ? `-${varName}` : `${a}${varName}`));
+  
+  const common = gcd(a, b);
+  const aa = a / common;
+  const bb = b / common;
+  
+  let inner = '';
+  if (aa === 1) inner = varName;
+  else if (aa === -1) inner = `-${varName}`;
+  else inner = `${aa}${varName}`;
+  
+  if (bb > 0) inner += `+${bb}`;
+  else if (bb < 0) inner += `${bb}`;
+  
+  if (common === 1) return inner;
+  if (common === -1) return `-\\left( ${inner} \\right)`;
+  return `${common}\\left( ${inner} \\right)`;
+};
+
 const getUpperLimit = () => {
     const r = Math.random();
     if (r < 0.34) return { tex: 'n', expr: 'n', n: 'n', np1: 'n+1', np2: 'n+2', np3: 'n+3', nm1: 'n-1' };
@@ -48,8 +72,7 @@ const fmtProduct = (factors) => {
 const fmtFrac = (num, den) => {
   if (den === 1) return `${num}`;
   if (num === 0) return `0`;
-  const g = (a, b) => b === 0 ? Math.abs(a) : g(b, a % b);
-  const common = g(num, den);
+  const common = gcd(num, den);
   const n = num / common;
   const d = den / common;
   if (d === 1) return `${n}`;
@@ -61,44 +84,54 @@ const fmtFrac = (num, den) => {
  * Formats a polynomial an^4 + bn^3 + cn^2 + dn + e as a clean LaTeX string.
  * coeffs: [e, d, c, b, a] where a is n^4 coefficient
  */
-const fmtPolynomial = (coeffs) => {
+const fmtPolynomial = (coeffs, varName = 'n') => {
   let res = '';
   const degrees = coeffs.length - 1;
+  const eps = 1e-10;
+  
   for (let i = degrees; i >= 0; i--) {
     let c = coeffs[i];
-    if (c === 0) continue;
+    if (Math.abs(c) < eps) continue;
     
-    // Check if c is fractional (simplified as it comes from sum formulas)
     let cStr = '';
-    if (Number.isInteger(c)) {
-      const absC = Math.abs(c);
-      if (absC === 1 && i > 0) {
-        cStr = (c < 0 ? '-' : (res === '' ? '' : '+'));
+    const sign = (c < -eps ? '-' : (res === '' ? '' : '+'));
+    const absC = Math.abs(c);
+
+    if (Math.abs(absC - Math.round(absC)) < eps) {
+      // Handle integer-like coefficients
+      const intC = Math.round(absC);
+      if (intC === 1 && i > 0) {
+        cStr = sign;
       } else {
-        const sign = (c < 0 ? '-' : (res === '' ? '' : '+'));
-        cStr = sign + absC;
+        cStr = sign + intC;
       }
     } else {
-      // Handle rational coefficients (e.g., from mathjs or manual)
-      const sign = (c < 0 ? '-' : (res === '' ? '' : '+'));
-      // Simplified for common sum denominators (2, 3, 4, 6, 12, 24)
-      const absC = Math.abs(c);
-      const eps = 1e-10;
+      // Handle rational/float coefficients
       let frac = '';
       for (let d = 1; d <= 24; d++) {
         if (Math.abs(absC * d - Math.round(absC * d)) < eps) {
-          frac = fmtFrac(Math.round(absC * d), d);
+          const num = Math.round(absC * d);
+          const common = gcd(num, d);
+          if (d / common === 1) {
+            const n = num / common;
+            if (n === 1 && i > 0) frac = '';
+            else frac = `${n}`;
+          } else {
+            frac = String.raw`\frac{${num / common}}{${d / common}}`;
+          }
           break;
         }
       }
       cStr = sign + (frac || absC.toFixed(2));
     }
 
-    const term = (i === 0 ? '' : (i === 1 ? 'n' : `n^{${i}}`));
+    const term = (i === 0 ? '' : (i === 1 ? varName : `${varName}^{${i}}`));
     res += cStr + term;
   }
   return res || '0';
 };
+
+const fmtPolyK = (coeffs) => fmtPolynomial(coeffs, 'k');
 
 export const sequenceSumGenerators = {
   // レベル1: 等差数列・等比数列の和
@@ -170,7 +203,7 @@ export const sequenceSumGenerators = {
       let c = getRandomInt(-2, 2) * 2;
       let d = getRandomInt(-3, 3);
       
-      const q = texSigma(wrapMath(fmtPolynomial([d, c, b, a]).replace(/n/g, 'k')), nTex);
+      const q = texSigma(wrapMath(fmtPolyK([d, c, b, a])), nTex);
       
       // Coefficients of n^4, n^3, n^2, n, 1
       // S(N) = a/4 N^4 + (a/2+b/3)N^3 + (a/4+b/2+c/2)N^2 + (b/6+c/2+d)N
@@ -304,7 +337,7 @@ export const sequenceSumGenerators = {
       } else { // n+1
           const bV = (2 + a);
           const cV = 2 * a;
-          const inner = `${bV === 1 ? 'n' : (bV === -1 ? '-n' : (bV === 0 ? '' : bV + 'n'))}${cV > 0 ? (bV !== 0 ? '+' : '') + cV : (cV < 0 ? cV : (bV === 0 ? '0' : ''))}`;
+          const inner = simplifyFactor(bV, cV, 'n');
           return { question: q, answer: String.raw`\frac{\left(n+1\right)\left(${inner}\right)}{2}` };
       }
     } else { // sum_k sum_{l=1}^{k-1} l
@@ -402,15 +435,17 @@ export const sequenceSumGenerators = {
       return { question: q, answer: String.raw`\frac{${fmtProduct([N.n, innerStr])}}{4${fmtProduct([N.np1, N.np2])}}` };
     } else if (type === 5) { // 1/(k^2+ak)
       const aVal = getRandomInt(1, 2);
-      const q = texSigma(String.raw`\frac{1}{k^2 + ${aVal}k}`, nTex);
+      const q = texSigma(String.raw`\frac{1}{${fmtPolyK([0, aVal, 1])}}`, nTex);
       if (aVal === 1) return { question: q, answer: String.raw`\frac{${N.n}}{${N.np1}}` };
       const innerStr = (nTex === 'n' ? '3n+5' : (nTex === 'n-1' ? '3n+2' : '3n+8'));
       return { question: q, answer: String.raw`\frac{${fmtProduct([N.n, innerStr])}}{4${fmtProduct([N.np1, N.np2])}}` };
     } else { // 1/(2k+a)(2k+a+2)
       const aSub = [ -1, 1, 3 ][getRandomInt(0, 2)];
-      const q = texSigma(String.raw`\frac{1}{${wrapMath(String.raw`2k${aSub>0?'+':''}${aSub}`)}${wrapMath(String.raw`2k${aSub+2>0?'+':''}${aSub+2}`)}}`, nTex);
+      const q = texSigma(String.raw`\frac{1}{${wrapMath(simplifyFactor(2, aSub, 'k'))}${wrapMath(simplifyFactor(2, aSub+2, 'k'))}}`, nTex);
       const denOuter = 2 + aSub;
-      const denInner = `2n${(nTex==='n'? (aSub+2>0?'+'+(aSub+2):aSub+2) : (nTex==='n-1'? (aSub>0?'+'+aSub:aSub) : (aSub+4>0?'+'+(aSub+4):aSub+4)) )}`;
+      const bV = 2;
+      const cV = (nTex==='n'? aSub+2 : (nTex==='n-1'? aSub : aSub+4));
+      const denInner = simplifyFactor(bV, cV, 'n');
       return { question: q, answer: String.raw`\frac{${N.n}}{${denOuter}${wrapMath(denInner)}}` };
     }
   },
@@ -440,14 +475,28 @@ export const sequenceSumGenerators = {
   level7: () => {
     const N = getUpperLimit();
     const nTex = N.tex;
-    const q = texSigma(String.raw`\frac{2k+1}{k^2 \left( k+1 \right)^2}`, nTex);
-    // N(N+2)/(N+1)^2
-    // n(n+2)/(n+1)^2
-    // (n-1)(n+1)/n^2
-    // (n+1)(n+3)/(n+2)^2
-    if (nTex === 'n') return { question: q, answer: String.raw`\frac{n\left( n+2 \right)}{\left( n+1 \right)^2}` };
-    if (nTex === 'n-1') return { question: q, answer: String.raw`\frac{\left( n-1 \right)\left( n+1 \right)}{n^2}` };
-    return { question: q, answer: String.raw`\frac{\left( n+1 \right)\left( n+3 \right)}{\left( n+2 \right)^2}` };
+    const nMath = N.expr;
+    const type = getRandomInt(1, 4);
+
+    if (type === 1) { // sum k^2 / (2k-1)(2k+1) = n(n+1) / 2(2n+1)
+      const q = texSigma(String.raw`\frac{k^2}{\left( 2k-1 \right)\left( 2k+1 \right)}`, nTex);
+      const denInner = simplifyFactor(2, 1, 'n');
+      const ans = String.raw`\frac{${fmtProduct([nMath, N.np1])}}{2${wrapMath(denInner)}}`;
+      return { question: q, answer: ans };
+    } else if (type === 2) { // sum 2^k(1-k) / k(k+1) = 2 - 2^{n+1}/(n+1)
+      const q = texSigma(String.raw`\frac{2^k\left( 1-k \right)}{k\left( k+1 \right)}`, nTex);
+      const ans = String.raw`2 - \frac{2^{${N.np1}}}{${N.np1}}`;
+      return { question: q, answer: ans };
+    } else if (type === 3) { // sum (2k+1) / k(k+1)(k+2) = n(5n+7) / 4(n+1)(n+2)
+      const q = texSigma(String.raw`\frac{2k+1}{k\left( k+1 \right)\left( k+2 \right)}`, nTex);
+      const term2 = simplifyFactor(5, 7, 'n');
+      const ans = String.raw`\frac{${fmtProduct([nMath, term2])}}{4${fmtProduct([N.np1, N.np2])}}`;
+      return { question: q, answer: ans };
+    } else { // sum (2k+1) / k^2(k+1)^2 = n(n+2) / (n+1)^2
+      const q = texSigma(String.raw`\frac{2k+1}{k^2 \left( k+1 \right)^2}`, nTex);
+      const ans = String.raw`\frac{${fmtProduct([nMath, N.np2])}}{\left( ${N.np1} \right)^2}`;
+      return { question: q, answer: ans };
+    }
   },
 
   level8: () => {
