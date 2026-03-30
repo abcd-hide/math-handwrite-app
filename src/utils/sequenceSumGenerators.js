@@ -478,21 +478,23 @@ export const sequenceSumGenerators = {
     const nMath = N.expr;
     const type = getRandomInt(1, 4);
 
-    if (type === 1) { // sum k^2 / (2k-1)(2k+1) = n(n+1) / 2(2n+1)
+    if (type === 1) { // sum k^2 / (2k-1)(2k+1) = N(N+1) / 2(2N+1)
       const q = texSigma(String.raw`\frac{k^2}{\left( 2k-1 \right)\left( 2k+1 \right)}`, nTex);
-      const denInner = simplifyFactor(2, 1, 'n');
+      const shift = (nTex === 'n' ? 1 : (nTex === 'n-1' ? -1 : 3));
+      const denInner = simplifyFactor(2, shift, 'n');
       const ans = String.raw`\frac{${fmtProduct([nMath, N.np1])}}{2${wrapMath(denInner)}}`;
       return { question: q, answer: ans };
-    } else if (type === 2) { // sum 2^k(1-k) / k(k+1) = 2 - 2^{n+1}/(n+1)
+    } else if (type === 2) { // sum 2^k(1-k) / k(k+1) = 2 - 2^{N+1}/(N+1)
       const q = texSigma(String.raw`\frac{2^k\left( 1-k \right)}{k\left( k+1 \right)}`, nTex);
       const ans = String.raw`2 - \frac{2^{${N.np1}}}{${N.np1}}`;
       return { question: q, answer: ans };
-    } else if (type === 3) { // sum (2k+1) / k(k+1)(k+2) = n(5n+7) / 4(n+1)(n+2)
+    } else if (type === 3) { // sum (2k+1) / k(k+1)(k+2) = N(5N+7) / 4(N+1)(N+2)
       const q = texSigma(String.raw`\frac{2k+1}{k\left( k+1 \right)\left( k+2 \right)}`, nTex);
-      const term2 = simplifyFactor(5, 7, 'n');
+      const shift = (nTex === 'n' ? 7 : (nTex === 'n-1' ? 2 : 12));
+      const term2 = simplifyFactor(5, shift, 'n');
       const ans = String.raw`\frac{${fmtProduct([nMath, term2])}}{4${fmtProduct([N.np1, N.np2])}}`;
       return { question: q, answer: ans };
-    } else { // sum (2k+1) / k^2(k+1)^2 = n(n+2) / (n+1)^2
+    } else { // sum (2k+1) / k^2(k+1)^2 = N(N+2) / (N+1)^2
       const q = texSigma(String.raw`\frac{2k+1}{k^2 \left( k+1 \right)^2}`, nTex);
       const ans = String.raw`\frac{${fmtProduct([nMath, N.np2])}}{\left( ${N.np1} \right)^2}`;
       return { question: q, answer: ans };
